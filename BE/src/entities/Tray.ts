@@ -12,4 +12,3 @@ export class Tray {
   @Column({ type: "varchar", default: "Free" })
   status: "Free" | "Occupied" | undefined;
 }
-

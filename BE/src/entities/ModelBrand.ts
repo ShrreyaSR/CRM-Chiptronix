@@ -14,5 +14,3 @@ export class ModelBrand {
   @Column({ type: "text", nullable: true })
   description: string | undefined;
 }
-
-

@@ -1,10 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
-export class Complaint {
+export class Vendor {
   @PrimaryGeneratedColumn()
   id: number | undefined;
 
   @Column({ type: "text" })
-  description: string | undefined;
+  name: string | undefined;
 }

@@ -5,9 +5,10 @@ const router = Router();
 const controller = new TrayController();
 
 router.get("/", controller.getAll);
+router.get("/:id", controller.getById);
 router.post("/", controller.create);
-router.delete("/:id", controller.delete);
 router.patch("/:id", controller.update);
-router.post("/bulk", controller.bulkAdd)
+router.delete("/:id", controller.delete);
+router.post("/bulk", controller.bulkAdd);
 
 export default router;

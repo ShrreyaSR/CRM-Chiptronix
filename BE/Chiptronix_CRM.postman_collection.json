@@ -1,0 +1,1185 @@
+{
+	"info": {
+		"_postman_id": "chiptronix-crm-api",
+		"name": "Chiptronix CRM API",
+		"description": "Complete API collection for Chiptronix CRM Backend - Laptop Repair Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "chiptronix-crm"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check server health and status"
+					},
+					"response": []
+				}
+			],
+			"description": "Server health and status endpoints"
+		},
+		{
+			"name": "Clients",
+			"item": [
+				{
+					"name": "Get All Clients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clients?search=&sortField=name&sortOrder=ASC&clientType=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"clients"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches name, email, phone)"
+								},
+								{
+									"key": "sortField",
+									"value": "name",
+									"description": "Field to sort by (default: name)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								},
+								{
+									"key": "clientType",
+									"value": "",
+									"description": "Filter by type: Dealer or Customer"
+								}
+							]
+						},
+						"description": "Get all clients with optional search, filter, and sort"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Client",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St, City, State\",\n  \"clientType\": \"Customer\",\n  \"passwordIfDealer\": null\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/clients",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"clients"
+							]
+						},
+						"description": "Create a new client (Customer or Dealer)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Client",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.updated@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"456 New St, City, State\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/clients/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"clients",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Client ID"
+								}
+							]
+						},
+						"description": "Update an existing client"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Client",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clients/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"clients",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Client ID"
+								}
+							]
+						},
+						"description": "Delete a client"
+					},
+					"response": []
+				}
+			],
+			"description": "Client management endpoints"
+		},
+		{
+			"name": "Technicians",
+			"item": [
+				{
+					"name": "Get All Technicians",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/technicians?search=&sortField=name&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"technicians"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches name, email, phone)"
+								},
+								{
+									"key": "sortField",
+									"value": "name",
+									"description": "Field to sort by (default: name)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all technicians with optional search and sort"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Technician",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tech Master\",\n  \"email\": \"tech@chiptronix.com\",\n  \"password\": \"securepassword123\",\n  \"phone\": \"+1234567890\",\n  \"dob\": \"1990-01-15\",\n  \"doj\": \"2020-01-01\",\n  \"address\": \"123 Tech Street, City\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/technicians",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"technicians"
+							]
+						},
+						"description": "Create a new technician"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Technician",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tech Master Updated\",\n  \"phone\": \"+9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/technicians/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"technicians",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Technician ID"
+								}
+							]
+						},
+						"description": "Update an existing technician"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Technician",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/technicians/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"technicians",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Technician ID"
+								}
+							]
+						},
+						"description": "Delete a technician"
+					},
+					"response": []
+				}
+			],
+			"description": "Technician management endpoints"
+		},
+		{
+			"name": "Job Sheets",
+			"item": [
+				{
+					"name": "Get All Job Sheets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/jobsheets?search=&status=&client=&assignedTo=&fromDate=&toDate=&sortField=createdOn&sortOrder=DESC&page=1&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobsheets"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches client, service type, brand, model, serial number, etc.)"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status: Pending, In Progress, Completed, Delivered, Waiting for Spares, Waiting for Customer Reply"
+								},
+								{
+									"key": "client",
+									"value": "",
+									"description": "Filter by client ID"
+								},
+								{
+									"key": "assignedTo",
+									"value": "",
+									"description": "Filter by technician ID (assigned to)"
+								},
+								{
+									"key": "fromDate",
+									"value": "",
+									"description": "Start date filter (YYYY-MM-DD)"
+								},
+								{
+									"key": "toDate",
+									"value": "",
+									"description": "End date filter (YYYY-MM-DD)"
+								},
+								{
+									"key": "sortField",
+									"value": "createdOn",
+									"description": "Field to sort by (default: createdOn)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "DESC",
+									"description": "Sort order: ASC or DESC (default: DESC)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page (default: 10, use -1 for all)"
+								}
+							]
+						},
+						"description": "Get all job sheets with advanced filtering, sorting, and pagination"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Job Sheet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"client\": {\n    \"id\": 1\n  },\n  \"serviceType\": \"Chip level\",\n  \"deviceType\": \"Laptop\",\n  \"brand\": {\n    \"id\": 1\n  },\n  \"color\": \"Black\",\n  \"serialNumber\": \"SN123456789\",\n  \"complaint\": {\n    \"id\": 1\n  },\n  \"problemsIdentified\": \"Screen not working, battery dead\",\n  \"tray\": {\n    \"id\": 1\n  },\n  \"receivedFrom\": \"Customer directly\",\n  \"assignedTo\": {\n    \"id\": 1\n  },\n  \"receivedBy\": {\n    \"id\": 1\n  },\n  \"estimateAmount\": 5000,\n  \"advancePayment\": 2000,\n  \"status\": \"Pending\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/jobsheets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobsheets"
+							]
+						},
+						"description": "Create a new job sheet. Note: Related entities (client, brand, complaint, tray, technicians) should exist first."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Job Sheet",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"In Progress\",\n  \"problemsIdentified\": \"Screen replaced, battery replaced\",\n  \"fixSummary\": \"Replaced screen and battery. Device working properly now.\",\n  \"totalAmount\": 5500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/jobsheets/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobsheets",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Job Sheet ID"
+								}
+							]
+						},
+						"description": "Update an existing job sheet"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Job Sheet",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/jobsheets/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"jobsheets",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Job Sheet ID"
+								}
+							]
+						},
+						"description": "Delete a job sheet"
+					},
+					"response": []
+				}
+			],
+			"description": "Job sheet management endpoints - Core feature for managing repair jobs"
+		},
+		{
+			"name": "Trays",
+			"item": [
+				{
+					"name": "Get All Trays",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trays?sortField=trayNumber&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays"
+							],
+							"query": [
+								{
+									"key": "sortField",
+									"value": "trayNumber",
+									"description": "Field to sort by (default: trayNumber)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all trays"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tray by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trays/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Tray ID"
+								}
+							]
+						},
+						"description": "Get a specific tray by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tray",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"trayNumber\": 101,\n  \"status\": \"Free\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trays",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays"
+							]
+						},
+						"description": "Create a new tray. Note: trayNumber must be unique"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tray",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"Occupied\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trays/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Tray ID"
+								}
+							]
+						},
+						"description": "Update tray status or tray number"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tray",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trays/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Tray ID"
+								}
+							]
+						},
+						"description": "Delete a tray"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Create Trays",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"totalCount\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/trays/bulk",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trays",
+								"bulk"
+							]
+						},
+						"description": "Bulk create trays. Creates trays from current count + 1 to totalCount. Each tray will have status 'Free'"
+					},
+					"response": []
+				}
+			],
+			"description": "Tray management endpoints - For managing storage trays"
+		},
+		{
+			"name": "Model Brands",
+			"item": [
+				{
+					"name": "Get All Model Brands",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/model-brands?search=&sortField=brand&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"model-brands"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches brand and model)"
+								},
+								{
+									"key": "sortField",
+									"value": "brand",
+									"description": "Field to sort by (default: brand)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all model/brand combinations"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Model Brand",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"brand\": \"Dell\",\n  \"model\": \"Inspiron 15 3000\",\n  \"description\": \"15.6 inch laptop with Intel Core i5\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/model-brands",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"model-brands"
+							]
+						},
+						"description": "Create a new model/brand combination"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Model Brand",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"brand\": \"Dell\",\n  \"model\": \"Inspiron 15 3000 (Updated)\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/model-brands/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"model-brands",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Model Brand ID"
+								}
+							]
+						},
+						"description": "Update an existing model/brand"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Model Brand",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/model-brands/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"model-brands",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Model Brand ID"
+								}
+							]
+						},
+						"description": "Delete a model/brand"
+					},
+					"response": []
+				}
+			],
+			"description": "Model and Brand management endpoints"
+		},
+		{
+			"name": "Complaints",
+			"item": [
+				{
+					"name": "Get All Complaints",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/complaints?search=&sortField=description&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"complaints"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches description)"
+								},
+								{
+									"key": "sortField",
+									"value": "description",
+									"description": "Field to sort by (default: description)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all complaint types"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Complaint",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Screen not working\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/complaints",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"complaints"
+							]
+						},
+						"description": "Create a new complaint type"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Complaint",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Screen not working - LCD panel issue\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/complaints/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"complaints",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Complaint ID"
+								}
+							]
+						},
+						"description": "Update an existing complaint type"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Complaint",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/complaints/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"complaints",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Complaint ID"
+								}
+							]
+						},
+						"description": "Delete a complaint type"
+					},
+					"response": []
+				}
+			],
+			"description": "Complaint type management endpoints"
+		},
+		{
+			"name": "Vendors",
+			"item": [
+				{
+					"name": "Get All Vendors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/vendor?search=&sortField=name&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"vendor"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches name)"
+								},
+								{
+									"key": "sortField",
+									"value": "name",
+									"description": "Field to sort by (default: name)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all vendors"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Vendor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tech Parts Supplier Inc.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/vendor",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"vendor"
+							]
+						},
+						"description": "Create a new vendor"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Vendor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tech Parts Supplier Inc. (Updated)\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/vendor/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"vendor",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Vendor ID"
+								}
+							]
+						},
+						"description": "Update an existing vendor"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Vendor",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/vendor/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"vendor",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Vendor ID"
+								}
+							]
+						},
+						"description": "Delete a vendor"
+					},
+					"response": []
+				}
+			],
+			"description": "Vendor management endpoints"
+		},
+		{
+			"name": "Sales Persons",
+			"item": [
+				{
+					"name": "Get All Sales Persons",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sales-person?search=&sortField=name&sortOrder=ASC",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sales-person"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term (searches name, email, phone)"
+								},
+								{
+									"key": "sortField",
+									"value": "name",
+									"description": "Field to sort by (default: name)"
+								},
+								{
+									"key": "sortOrder",
+									"value": "ASC",
+									"description": "Sort order: ASC or DESC (default: ASC)"
+								}
+							]
+						},
+						"description": "Get all sales persons"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Sales Person",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sales Pro\",\n  \"email\": \"sales@chiptronix.com\",\n  \"password\": \"securepassword123\",\n  \"phone\": \"+1234567890\",\n  \"dob\": \"1985-05-20\",\n  \"doj\": \"2019-06-01\",\n  \"address\": \"456 Sales Avenue, City\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sales-person",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sales-person"
+							]
+						},
+						"description": "Create a new sales person"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Sales Person",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sales Pro Updated\",\n  \"phone\": \"+9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sales-person/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sales-person",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Sales Person ID"
+								}
+							]
+						},
+						"description": "Update an existing sales person"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Sales Person",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sales-person/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sales-person",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Sales Person ID"
+								}
+							]
+						},
+						"description": "Delete a sales person"
+					},
+					"response": []
+				}
+			],
+			"description": "Sales person management endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
+
+

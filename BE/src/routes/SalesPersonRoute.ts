@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { TechnicianController } from "../controllers/TechnicianController";
+import { SalesPersonController } from "../controllers/SalesPersonController";
 
 const router = Router();
-const controller = new TechnicianController();
+const controller = new SalesPersonController();
 
 router.get("/", controller.getAll);
 router.post("/", controller.create);

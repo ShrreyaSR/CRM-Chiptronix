@@ -8,18 +8,18 @@ export class Client {
   @Column({ type: "varchar" })
   name: string | undefined;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", nullable: true })
   email: string | undefined;
 
   @Column({ type: "varchar" })
   phone: string | undefined;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", nullable: true })
   address: string | undefined;
 
   @Column({ type: "varchar" })
   clientType: "Dealer" | "Customer" | undefined;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", nullable: true })
   passwordIfDealer: string | undefined;
 }

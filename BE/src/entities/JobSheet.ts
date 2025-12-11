@@ -1,9 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from "typeorm";
 import { Client } from "./Client";
 import { ModelBrand } from "./ModelBrand";
 import { Complaint } from "./Complaint";
 import { Tray } from "./Tray";
 import { Technician } from "./Technician";
+import { Spares } from "./Spares";
 
 @Entity()
 export class JobSheet {
@@ -17,17 +25,17 @@ export class JobSheet {
   @Column({ type: "varchar" })
   serviceType: string | undefined;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: "varchar" })
   deviceType: string | undefined;
 
   @ManyToOne(() => ModelBrand, { eager: true })
   @JoinColumn()
   brand: ModelBrand | undefined;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: "varchar" })
   color: string | undefined;
 
-  @Column({ type: "varchar"})
+  @Column({ type: "varchar" })
   serialNumber: string | undefined;
 
   @ManyToOne(() => Complaint, { eager: true })
@@ -41,10 +49,10 @@ export class JobSheet {
   @JoinColumn()
   tray: Tray | undefined;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", nullable: true })
   receivedFrom: string | undefined;
 
-  @ManyToOne(() => Technician, { eager: true })
+  @ManyToOne(() => Technician, { eager: true, nullable: true })
   @JoinColumn({ name: "assignedTo" })
   assignedTo: Technician | undefined;
 
@@ -55,24 +63,40 @@ export class JobSheet {
   @Column({ type: "numeric", nullable: true })
   estimateAmount: number | undefined;
 
-  @Column({ type: "int", nullable: true })
-  estimateTime: number | undefined; 
-
   @Column({ type: "numeric", nullable: true })
   advancePayment: number | undefined;
 
-  @Column({ type: "text", nullable: true })
-  description: string | undefined;
-
   @Column({ type: "varchar", nullable: true })
-  picture: string | undefined; 
+  picture: string | undefined;
 
-  @Column({ type: "varchar", default: "Open" })
-  status: string | undefined; 
+  @Column({ type: "varchar", default: "Pending" })
+  status: string | undefined;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: "createdOn" })
   createdOn: Date | undefined;
 
+  @ManyToOne(() => Spares, { eager: true, nullable: true })
+  @JoinColumn({ name: "spares" })
+  spares: Spares | undefined;
+
+  @Column({ type: "numeric", nullable: true })
+  totalAmount: number | undefined;
+
+  @Column({ type: "text", nullable: true })
+  fixSummary: string | undefined;
 }
 
+
+
+
+
+
+
+//   @Column({ type: "varchar", nullable: true })
+//   picture: string | undefined;
+
+
+//   @ManyToOne(() => Spares, { eager: true, nullable: true })
+//   @JoinColumn({ name: "spares" })
+//   spares: Spares | undefined;
 

@@ -1,17 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import { TechnicianService } from "../services/TechnicianService";
+import { VendorService } from "../services/VendorService";
 
-const service = new TechnicianService();
+const service = new VendorService();
 
-export class TechnicianController {
+export class VendorController {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const { search, sortField, sortOrder } = req.query;
-      const result = await service.getAllTechnicians({
+
+      const result = await service.getAllVendors({
         search: (search as string) || "",
         sortField: (sortField as string) || "name",
         sortOrder: (sortOrder as "ASC" | "DESC") || "ASC",
       });
+
       res.json({ success: true, ...result });
     } catch (error) {
       next(error);
@@ -20,8 +22,8 @@ export class TechnicianController {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const technician = await service.createTechnician(req.body);
-      res.status(201).json({ success: true, data: technician });
+      const vendor = await service.createVendor(req.body);
+      res.status(201).json({ success: true, data: vendor });
     } catch (error) {
       next(error);
     }
@@ -29,7 +31,7 @@ export class TechnicianController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const updated = await service.updateTechnician(
+      const updated = await service.updateVendor(
         Number(req.params.id),
         req.body
       );
@@ -41,8 +43,8 @@ export class TechnicianController {
 
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await service.deleteTechnician(Number(req.params.id));
-      res.json({ success: true, message: "Technician deleted successfully" });
+      await service.deleteVendor(Number(req.params.id));
+      res.json({ success: true, message: "Vendor deleted successfully" });
     } catch (error) {
       next(error);
     }
