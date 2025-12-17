@@ -274,3 +274,65 @@ html {
   background: rgba(29, 78, 216, 1);
   background-clip: padding-box;
 }
+
+/* Toggle Button Styles */
+.toggle-button {
+  position: relative;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-button:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.toggle-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.toggle-button:focus-visible {
+  outline: none;
+  ring-width: 2px;
+  ring-offset-width: 2px;
+}
+
+.toggle-circle {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s ease-in-out;
+}
+
+.toggle-button:hover:not(:disabled) .toggle-circle {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Pulse animation when toggle is enabled */
+@keyframes toggle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+  }
+}
+
+.toggle-button[aria-checked="true"]:not(:disabled) {
+  animation: toggle-pulse 1.5s ease-in-out;
+}
+
+/* Smooth gradient animation for enabled state */
+.toggle-button[aria-checked="true"]:not(:disabled) {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

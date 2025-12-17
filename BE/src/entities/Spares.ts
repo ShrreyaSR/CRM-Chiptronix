@@ -32,7 +32,7 @@ export class Spares {
   @JoinColumn()
   salesPerson: SalesPerson | undefined;
 
-  @ManyToOne(() => Vendor, { eager: true })
+  @ManyToOne(() => Vendor, { eager: true, nullable: true })
   @JoinColumn()
   vendor: Vendor | undefined;
 }

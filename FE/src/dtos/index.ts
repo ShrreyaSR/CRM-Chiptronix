@@ -1,47 +1,46 @@
 export interface ClientDto {
   id: number;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   address: string;
   clientType: "Dealer" | "Customer";
-  passwordIfDealer: string;
+  passwordIfDealer?: string;
 }
 
 export interface TechnicianDto {
   id: number;
   name: string;
-  email: string;
+  email?: string;
   password: string;
   phone: string;
-  dob: string;
-  doj: string;
-  idProofType?: string;
-  idProof?: string;
+  dob?: string;
+  doj?: string;
   address?: string;
 }
 
 export interface JobSheetDto {
   id: string;
   client: ClientDto;
+  serviceType:  "Chip level" | "OS installation / upgrades" | "Card level services" | "Warranty claim" | "Return complaint"
   deviceType: "UPS" | "Projector" | "Desktop" | "Laptop";
   brand: BrandDto;
-  serviceType:  "Chip level" | "OS installation / upgrades" | "Card level services" | "Warranty claim" | "Return complaint"
   color: string;
   serialNumber: string;
   complaint: ComplaintDto;
   problemsIdentified?: string;
   tray: TrayDto;
-  receivedFrom: string;
-  assignedTo: TechnicianDto;
+  receivedFrom?: string;
+  assignedTo?: TechnicianDto;
   receivedBy: TechnicianDto;
   estimateAmount?: number;
-  estimateTime?: number;
-  advancePayment?: number;
-  description?: string;
+  amountPaid?: number;
   picture?: string; 
-  status: "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply";
+  status: "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Paid";
   createdOn: string;
+  spares?: SparesDto;
+  totalAmount?: number;
+  fixSummary?: string;
 }
 
 export interface BrandDto {
@@ -54,12 +53,39 @@ export interface BrandDto {
 export interface TrayDto {
   id: number;
   trayNumber: string;
-  status?: "Free" | "Occupied";
+  status: "Free" | "Occupied";
 }
 
 export interface ComplaintDto {
   id: number;
   description: string;
+}
+
+export interface SparesDto {
+  id: number;
+  product: string;
+  description: string;
+  amount?: string;
+  billNumber?: string;
+  status: "Requested" | "Approved" | "Purchase Initiated" | "Purchased" | "Delivered to Technician";
+  salesPerson: SalesPersonDto;
+  vendor?: VendorDto;
+}
+
+export interface SalesPersonDto{
+  id: number;
+  name: string;
+  email?: string;
+  password: string;
+  phone: string;
+  dob?: string;
+  doj?: string;
+  address?: string;
+}
+
+export interface VendorDto{
+  id: number;
+  name: string;
 }
 
 export interface jobSheetResDto {

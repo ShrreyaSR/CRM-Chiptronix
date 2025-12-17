@@ -180,6 +180,16 @@
     --color-cyan-600: oklch(0.609 0.126 221.723);
     --color-violet-500: oklch(0.606 0.25 292.717);
     --color-rose-500: oklch(0.645 0.246 16.439);
+    /* Subtle Sales Management Colors - Milder Orange/Red tones */
+    --color-sales-50: oklch(0.985 0.012 65.5);
+    --color-sales-100: oklch(0.96 0.028 68.2);
+    --color-sales-200: oklch(0.92 0.055 70.8);
+    --color-sales-300: oklch(0.87 0.085 72.5);
+    --color-sales-400: oklch(0.78 0.12 74.0);
+    --color-sales-500: oklch(0.68 0.15 75.5);
+    --color-sales-600: oklch(0.58 0.13 76.0);
+    --color-sales-700: oklch(0.50 0.11 77.0);
+    --color-sales-800: oklch(0.42 0.09 78.0);
     --color-black: #000;
     --color-white: #fff;
     --spacing: 0.25rem;
@@ -1170,6 +1180,10 @@
     width: 4in;
   }
 
+  .w-\[700px\] {
+    width: 700px;
+  }
+
   .w-auto {
     width: auto;
   }
@@ -1255,6 +1269,10 @@
 
   .min-w-\[250px\] {
     min-width: 250px;
+  }
+
+  .min-w-\[300px\] {
+    min-width: 300px;
   }
 
   .min-w-\[var\(--radix-select-trigger-width\)\] {
@@ -1461,6 +1479,14 @@
 
   .gap-6 {
     gap: calc(var(--spacing) * 6);
+  }
+
+  .gap-8 {
+    gap: calc(var(--spacing) * 8);
+  }
+
+  .gap-10 {
+    gap: calc(var(--spacing) * 10);
   }
 
   :where(.space-y-1 > :not(:last-child)) {
@@ -1726,6 +1752,15 @@
     border-color: var(--color-red-200);
   }
 
+  /* Sales Management - Border Colors */
+  .border-sales-200 {
+    border-color: var(--color-sales-200);
+  }
+
+  .border-sales-300 {
+    border-color: var(--color-sales-300);
+  }
+
   .border-rose-200 {
     border-color: var(--color-rose-200);
   }
@@ -1764,6 +1799,10 @@
 
   .bg-amber-100 {
     background-color: var(--color-amber-100);
+  }
+
+  .bg-amber-600 {
+    background-color: var(--color-amber-600);
   }
 
   .bg-background {
@@ -1858,6 +1897,10 @@
     background-color: var(--color-green-500);
   }
 
+  .bg-green-600 {
+    background-color: var(--color-green-600);
+  }
+
   .bg-indigo-600 {
     background-color: var(--color-indigo-600);
   }
@@ -1944,6 +1987,31 @@
 
   .bg-teal-100 {
     background-color: var(--color-teal-100);
+  }
+
+  /* Sales Management - Subtle Background Colors */
+  .bg-sales-50 {
+    background-color: var(--color-sales-50);
+  }
+
+  .bg-sales-100 {
+    background-color: var(--color-sales-100);
+  }
+
+  .bg-sales-200 {
+    background-color: var(--color-sales-200);
+  }
+
+  .bg-sales-500 {
+    background-color: var(--color-sales-500);
+  }
+
+  .bg-sales-600 {
+    background-color: var(--color-sales-600);
+  }
+
+  .bg-sales-700 {
+    background-color: var(--color-sales-700);
   }
 
   .bg-transparent {
@@ -2348,6 +2416,47 @@
     );
   }
 
+  /* Sales Management - Gradient From Colors */
+  .from-sales-50 {
+    --tw-gradient-from: var(--color-sales-50);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .from-sales-500 {
+    --tw-gradient-from: var(--color-sales-500);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .from-sales-600 {
+    --tw-gradient-from: var(--color-sales-600);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .from-sales-700 {
+    --tw-gradient-from: var(--color-sales-700);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
   .from-violet-500 {
     --tw-gradient-from: var(--color-violet-500);
     --tw-gradient-stops: var(
@@ -2557,6 +2666,47 @@
     );
   }
 
+  /* Sales Management - Gradient To Colors */
+  .to-sales-50 {
+    --tw-gradient-to: var(--color-sales-50);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .to-sales-100 {
+    --tw-gradient-to: var(--color-sales-100);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .to-sales-600 {
+    --tw-gradient-to: var(--color-sales-600);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .to-sales-700 {
+    --tw-gradient-to: var(--color-sales-700);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
   .to-gray-200 {
     --tw-gradient-to: var(--color-gray-200);
     --tw-gradient-stops: var(
@@ -2569,6 +2719,16 @@
 
   .to-green-600 {
     --tw-gradient-to: var(--color-green-600);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .to-green-700 {
+    --tw-gradient-to: var(--color-green-700);
     --tw-gradient-stops: var(
       --tw-gradient-via-stops,
       var(--tw-gradient-position),
@@ -3242,6 +3402,19 @@
     color: var(--color-teal-700);
   }
 
+  /* Sales Management - Text Colors */
+  .text-sales-100 {
+    color: var(--color-sales-100);
+  }
+
+  .text-sales-600 {
+    color: var(--color-sales-600);
+  }
+
+  .text-sales-700 {
+    color: var(--color-sales-700);
+  }
+
   .text-violet-100 {
     color: var(--color-violet-100);
   }
@@ -3837,6 +4010,25 @@
         );
       }
     }
+
+    /* Sales Management - Hover States */
+    .hover\:bg-sales-50\/50:hover {
+      background-color: color-mix(
+        in srgb,
+        oklch(0.985 0.012 65.5) 50%,
+        transparent
+      );
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-sales-50\/50:hover {
+        background-color: color-mix(
+          in oklab,
+          var(--color-sales-50) 50%,
+          transparent
+        );
+      }
+    }
   }
 
   @media (hover: hover) {
@@ -3958,11 +4150,33 @@
         var(--tw-gradient-to) var(--tw-gradient-to-position)
       );
     }
+
+    /* Sales Management - Hover Gradient To */
+    .hover\:to-sales-50:hover {
+      --tw-gradient-to: var(--color-sales-50);
+      --tw-gradient-stops: var(
+        --tw-gradient-via-stops,
+        var(--tw-gradient-position),
+        var(--tw-gradient-from) var(--tw-gradient-from-position),
+        var(--tw-gradient-to) var(--tw-gradient-to-position)
+      );
+    }
   }
 
   @media (hover: hover) {
     .hover\:to-emerald-700:hover {
       --tw-gradient-to: var(--color-emerald-700);
+      --tw-gradient-stops: var(
+        --tw-gradient-via-stops,
+        var(--tw-gradient-position),
+        var(--tw-gradient-from) var(--tw-gradient-from-position),
+        var(--tw-gradient-to) var(--tw-gradient-to-position)
+      );
+    }
+
+    /* Sales Management - Hover Gradient To (darker) */
+    .hover\:to-sales-700:hover {
+      --tw-gradient-to: var(--color-sales-700);
       --tw-gradient-stops: var(
         --tw-gradient-via-stops,
         var(--tw-gradient-position),
@@ -4409,6 +4623,16 @@
     );
   }
 
+  .data-\[state\=active\]\:from-sales-500[data-state="active"] {
+    --tw-gradient-from: var(--color-sales-500);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
   .data-\[state\=active\]\:from-purple-600[data-state="active"] {
     --tw-gradient-from: var(--color-purple-600);
     --tw-gradient-stops: var(
@@ -4431,6 +4655,16 @@
 
   .data-\[state\=active\]\:to-emerald-700[data-state="active"] {
     --tw-gradient-to: var(--color-emerald-700);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .data-\[state\=active\]\:to-sales-600[data-state="active"] {
+    --tw-gradient-to: var(--color-sales-600);
     --tw-gradient-stops: var(
       --tw-gradient-via-stops,
       var(--tw-gradient-position),
@@ -4497,6 +4731,16 @@
   }
   .data-\[state\=active\]\:to-amber-600[data-state="active"] {
     --tw-gradient-to: var(--color-amber-600);
+    --tw-gradient-stops: var(
+      --tw-gradient-via-stops,
+      var(--tw-gradient-position),
+      var(--tw-gradient-from) var(--tw-gradient-from-position),
+      var(--tw-gradient-to) var(--tw-gradient-to-position)
+    );
+  }
+
+  .data-\[state\=active\]\:to-purple-500[data-state="active"] {
+    --tw-gradient-to: var(--color-purple-500);
     --tw-gradient-stops: var(
       --tw-gradient-via-stops,
       var(--tw-gradient-position),
@@ -5076,10 +5320,44 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  --switch-background: oklch(0.4 0 0);
 }
 
 html {
   font-size: var(--font-size);
+}
+
+/* Switch Component Styles */
+[data-slot="switch"] {
+  cursor: pointer;
+  background-color: var(--switch-background);
+}
+
+[data-slot="switch"]:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+[data-slot="switch"][data-state="checked"] {
+  background-color: var(--primary);
+}
+
+[data-slot="switch-thumb"] {
+  background-color: var(--card);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+[data-slot="switch-thumb"][data-state="checked"] {
+  background-color: var(--primary-foreground);
+}
+
+[data-slot="switch"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+[data-slot="switch"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 @media print {
@@ -5161,6 +5439,56 @@ html {
 .custom-scrollbar::-webkit-scrollbar-thumb:active {
   background: #1d4ed8 padding-box padding-box;
 }
+
+.toggle-button {
+  position: relative;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-button:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.toggle-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.toggle-button:focus-visible {
+  outline: none;
+  ring-width: 2px;
+  ring-offset-width: 2px;
+}
+
+.toggle-circle {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s ease-in-out;
+}
+
+.toggle-button:hover:not(:disabled) .toggle-circle {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Pulse animation when toggle is enabled */
+@keyframes toggle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+  }
+}
+
+.toggle-button[aria-checked="true"]:not(:disabled) {
+  animation: toggle-pulse 1.5s ease-in-out;
+}
+
+/* Smooth gradient animation for enabled state */
+.toggle-button[aria-checked="true"]:not(:disabled) {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
 
 @property --tw-translate-x {
   syntax: "*";

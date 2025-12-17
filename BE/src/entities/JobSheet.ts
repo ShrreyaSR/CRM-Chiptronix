@@ -64,7 +64,7 @@ export class JobSheet {
   estimateAmount: number | undefined;
 
   @Column({ type: "numeric", nullable: true })
-  advancePayment: number | undefined;
+  amountPaid: number | undefined;
 
   @Column({ type: "varchar", nullable: true })
   picture: string | undefined;

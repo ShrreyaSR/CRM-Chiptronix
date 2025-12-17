@@ -37,6 +37,16 @@ export class JobSheetController {
     }
   }
 
+  async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const job = await service.getJobById(Number(id));
+      res.json({ success: true, data: job });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const job = await service.createJob(req.body);

@@ -27,9 +27,11 @@ export default function MainLayout() {
 
   const menuItems = [
     { id: "jobsheet", label: "Job Sheet", icon: ClipboardList, path: "/jobsheet" },
-    { id: "employee", label: "Technicians", icon: UserCog, path: "/employee" },
+    { id: "add-jobsheet", label: "Add Job Sheet", icon: Layers, path: "/add-jobsheet" },
+    { id: "technician", label: "Technicians", icon: UserCog, path: "/technician" },
     { id: "client", label: "Clients", icon: Users, path: "/client" },
     { id: "master-data", label: "Master Data", icon: Layers, path: "/master-data" },
+    { id: "sales-person", label: "Sales Person", icon: UserCog, path: "/sales-person" },
   ];
 
   const onLogout = () => {
