@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { Badge } from "../../ui/badge";
 import { crmApi } from "../../../api";
 import { SalesPersonDto as SalesPerson } from "../../../dtos";
+import { Alert } from "../../ui/alert";
 
 /* =====================================================
     1) TOOLBAR COMPONENT
@@ -207,7 +208,7 @@ function SalesPersonAddDialog({
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Add Sales Person</Button>
+          <Button onClick={onSubmit} disabled={!formData.name || !formData.password || !formData.phone}>Add Sales Person</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -238,7 +239,17 @@ function SalesPersonEditDialog({
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Update Sales Person</Button>
+
+          <Button
+            onClick={onSubmit}
+            disabled={
+              !formData.name ||
+              !formData.password ||
+              !formData.phone
+            }
+          >
+            Update Sales Person
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -258,25 +269,73 @@ function SalesPersonForm({
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-      {[
-        ["name", "Full Name"],
-        ["email", "Email"],
-        ["password", "Password"],
-        ["phone", "Phone Number"],
-      ].map(([key, label]) => (
-        <div className="space-y-2" key={key}>
-          <Label>{label} *</Label>
-          <Input
-            value={formData[key]}
-            type={key === "password" ? "password" : "text"}
-            onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-            className="rounded-xl"
-          />
-        </div>
-      ))}
+      <div className="space-y-2">
+        <Label>
+          Full Name <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="rounded-xl"
+          required
+        />
+      </div>
 
       <div className="space-y-2">
-        <Label>DOB *</Label>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          className="rounded-xl"
+        />
+        {formData.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+            <p className="text-xs text-red-500">
+              Please enter a valid email address
+            </p>
+          )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>
+          Password <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          className="rounded-xl"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>
+          Phone Number <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, "");
+            setFormData({ ...formData, phone: value });
+          }}
+          maxLength={10}
+          placeholder="Enter  phone number"
+          required
+        />
+        {formData.phone && formData.phone.length !== 10 && (
+          <p className="text-xs text-red-500">
+            Phone number must be 10 digits
+          </p>
+        )}
+      </div>
+
+
+      <div className="space-y-2">
+        <Label>DOB</Label>
         <Input
           type="date"
           value={formData.dob}
@@ -285,7 +344,7 @@ function SalesPersonForm({
       </div>
 
       <div className="space-y-2">
-        <Label>DOJ *</Label>
+        <Label>DOJ</Label>
         <Input
           type="date"
           value={formData.doj}
@@ -294,7 +353,7 @@ function SalesPersonForm({
       </div>
 
       <div className="space-y-2 md:col-span-2">
-        <Label>Address *</Label>
+        <Label>Address</Label>
         <Input
           value={formData.address}
           onChange={(e) =>
@@ -361,8 +420,8 @@ export function SalesPerson() {
     email: "",
     password: "",
     phone: "",
-    dob: "",
-    doj: "",
+    dob: null,
+    doj: null,
     address: "",
   });
 

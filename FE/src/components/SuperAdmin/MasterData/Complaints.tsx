@@ -159,7 +159,7 @@ function AddComplaintDialog({ open, formData, setFormData, onClose, onSubmit }: 
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <Label>Complaint Description</Label>
+          <Label>Complaint Description *</Label>
           <Textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -169,7 +169,7 @@ function AddComplaintDialog({ open, formData, setFormData, onClose, onSubmit }: 
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={onSubmit} className="bg-blue-600 text-white">
+          <Button onClick={onSubmit} disabled={!formData.description} className="bg-blue-600 text-white">
             Submit Complaint
           </Button>
         </DialogFooter>

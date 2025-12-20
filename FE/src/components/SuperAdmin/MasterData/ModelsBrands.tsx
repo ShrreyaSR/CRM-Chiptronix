@@ -195,7 +195,7 @@ function AddEditDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
           <div>
-            <Label className="mb-2">Brand</Label>
+            <Label className="mb-2">Brand *</Label>
             <Input
               value={formData.brand}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
@@ -204,7 +204,7 @@ function AddEditDialog({
           </div>
 
           <div>
-            <Label className="mb-2">Model</Label>
+            <Label className="mb-2">Model *</Label>
             <Input
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
@@ -226,7 +226,7 @@ function AddEditDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => {onOpenChange(false); formData}}>Cancel</Button>
 
-          <Button onClick={onSubmit} className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl">
+          <Button onClick={onSubmit} disabled={!formData.brand || !formData.model} className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl">
             {isEdit ? "Update Model" : "Add Model"}
           </Button>
         </DialogFooter>

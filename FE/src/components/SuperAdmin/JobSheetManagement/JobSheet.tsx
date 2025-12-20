@@ -66,6 +66,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "../../ui/scroll-area";
 import { Calendar } from "../../ui/calendar";
+import { format } from "date-fns";
 import {
   Pagination,
   PaginationContent,
@@ -162,20 +163,22 @@ export function SuperAdminJobSheet() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-      const params = {
-      search: searchTerm || "",
-      status: filterStatus !== "all" ? filterStatus : "",
-      client: filterClient !== "all" ? filterClient : "",
-      assignedTo: filterTechnician !== "all" ? filterTechnician : "",
-      fromDate: dateRange.from
-        ? dateRange.from.toISOString().split("T")[0]
-        : "",
-      toDate: dateRange.to ? dateRange.to.toISOString().split("T")[0] : "",
-      sortField,
-      sortOrder: sortDirection,
-      page: currentPage,
-      limit: itemsPerPage,
-    };
+  
+  // Build params with proper date formatting (using local date, not UTC)
+  const params = {
+    search: searchTerm || "",
+    status: filterStatus !== "all" ? filterStatus : "",
+    client: filterClient !== "all" ? filterClient : "",
+    assignedTo: filterTechnician !== "all" ? filterTechnician : "",
+    fromDate: dateRange.from
+      ? format(dateRange.from, 'yyyy-MM-dd')
+      : "",
+    toDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : "",
+    sortField,
+    sortOrder: sortDirection,
+    page: currentPage,
+    limit: itemsPerPage,
+  };
 
   useEffect(() => {
     fetchJobSheets();
@@ -520,66 +523,82 @@ export function SuperAdminJobSheet() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-auto p-2 scale-90 origin-top-left"
+                  className="w-auto p-0"
                   side="bottom"
                   align="start"
-                  avoidCollisions={false}
-                  sideOffset={4}
                 >
-                  <div className="p-2 space-y-3 text-sm">
-                    {" "}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Select Date Range</Label>
-
+                  <div className="p-4 flex gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs">From Date</Label>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs"
+                          className="h-6 px-2 text-xs"
                           onClick={() => {
                             const today = new Date();
-                            setDateRange({ from: today, to: today });
+                            setDateRange({ from: today, to: dateRange.to });
                             resetPagination();
                           }}
                         >
                           Today
                         </Button>
                       </div>
-
                       <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={(range: any) => {
-                          setDateRange(range);
+                        mode="single"
+                        selected={dateRange.from}
+                        onSelect={(date) => {
+                          setDateRange(prev => ({ ...prev, from: date }));
                           resetPagination();
                         }}
-                        numberOfMonths={1}
-                        className="[&_.rdp-day]:h-6 [&_.rdp-day]:w-6 
-               [&_.rdp-day]:text-xs [&_.rdp-nav]:text-xs
-               [&_.rdp-caption_label]:text-xs 
-               [&_.rdp-head_cell]:text-[10px]"
+                        initialFocus
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-8 px-2 text-xs" // 🔥 small buttons
-                        onClick={() => {
-                          setDateRange({ from: undefined, to: undefined });
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs">To Date</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            const today = new Date();
+                            setDateRange({ from: dateRange.from, to: today });
+                            resetPagination();
+                          }}
+                        >
+                          Today
+                        </Button>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={dateRange.to}
+                        onSelect={(date) => {
+                          setDateRange(prev => ({ ...prev, to: date }));
                           resetPagination();
-                          setShowDatePicker(false);
                         }}
-                      >
-                        Clear
-                      </Button>
-
-                      <Button
-                        className="flex-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700"
-                        onClick={() => setShowDatePicker(false)}
-                      >
-                        Apply
-                      </Button>
+                        disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                      />
                     </div>
+                  </div>
+                  <div className="flex gap-2 p-2 border-t">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-8 px-2 text-xs"
+                      onClick={() => {
+                        setDateRange({ from: undefined, to: undefined });
+                        resetPagination();
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      className="flex-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setShowDatePicker(false)}
+                    >
+                      Apply
+                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>

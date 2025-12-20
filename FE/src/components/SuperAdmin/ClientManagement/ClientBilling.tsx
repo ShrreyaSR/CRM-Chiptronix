@@ -134,25 +134,25 @@ export function ClientBilling() {
     return {
       delivered: {
         count: delivered.length,
-        total: delivered.reduce((sum, js) => sum + (js.estimateAmount || 0), 0),
-        paid: delivered.reduce((sum, js) => sum + (js.amountPaid || 0), 0),
+        total: delivered.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        paid: delivered.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
       notRepairable: {
         count: notRepairable.length,
-        total: notRepairable.reduce((sum, js) => sum + (js.estimateAmount || 0), 0),
-        paid: notRepairable.reduce((sum, js) => sum + (js.amountPaid || 0), 0),
+        total: notRepairable.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        paid: notRepairable.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
       repairDeclined: {
         count: repairDeclined.length,
-        total: repairDeclined.reduce((sum, js) => sum + (js.estimateAmount || 0), 0),
-        paid: repairDeclined.reduce((sum, js) => sum + (js.amountPaid || 0), 0),
+        total: repairDeclined.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        paid: repairDeclined.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
     };
   }, [jobSheets]);
 
   // Calculate total amounts
-  const totalAmount = deliveredJobSheets.reduce((sum, js) => sum + (js.estimateAmount || 0), 0);
-  const totalPaid = deliveredJobSheets.reduce((sum, js) => sum + (js.amountPaid || 0), 0);
+  const totalAmount = deliveredJobSheets.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0);
+  const totalPaid = deliveredJobSheets.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0);
   const totalBalance = totalAmount - totalPaid;
 
   // Calculate discount
@@ -272,14 +272,52 @@ export function ClientBilling() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange.from}
-                      selected={{ from: dateRange.from, to: dateRange.to }}
-                      onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                      numberOfMonths={2}
-                    />
+                    <div className="p-4 flex gap-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">From Date</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => {
+                              const today = new Date();
+                              setDateRange(prev => ({ ...prev, from: today }));
+                            }}
+                          >
+                            Today
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={dateRange.from}
+                          onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                          initialFocus
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs">To Date</Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => {
+                              const today = new Date();
+                              setDateRange(prev => ({ ...prev, to: today }));
+                            }}
+                          >
+                            Today
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={dateRange.to}
+                          onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                          disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                        />
+                      </div>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -562,8 +600,8 @@ export function ClientBilling() {
                         </TableHeader>
                         <TableBody>
                           {deliveredJobSheets.map((jobSheet) => {
-                            const estimate = jobSheet.estimateAmount || 0;
-                            const paid = jobSheet.amountPaid || 0;
+                            const estimate = Number(jobSheet.estimateAmount) || 0;
+                            const paid = Number(jobSheet.amountPaid) || 0;
                             const balance = estimate - paid;
 
                             return (

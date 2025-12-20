@@ -26,6 +26,7 @@ import { complaintApi } from "./resources/complaint.api";
 import { vendorApi } from "./resources/vendor.api";
 import { salesPersonApi } from "./resources/salesPerson.api";
 import { healthApi } from "./resources/health.api";
+import { authApi } from "./resources/auth.api";
 
 // Export all API resources
 export { clientApi } from "./resources/client.api";
@@ -64,6 +65,7 @@ export const crmApi = {
   vendor: vendorApi,
   salesPerson: salesPersonApi,
   health: healthApi,
+  auth: authApi,
 };
 
 // Default export for convenience

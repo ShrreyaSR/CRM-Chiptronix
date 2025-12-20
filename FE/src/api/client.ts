@@ -54,6 +54,21 @@ axiosClient.interceptors.response.use(
       });
     }
 
+    // Handle 401 Unauthorized - logout user
+    if (error.response?.status === 401) {
+      // Clear auth data
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      
+      // Only redirect if not already on login page
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      
+      toast.error("Session expired. Please login again.");
+      return Promise.reject(error);
+    }
+
     // Show toast notification for user-facing errors
     if (error.response?.status && error.response.status >= 500) {
       toast.error("Server error. Please try again later.");
@@ -61,6 +76,8 @@ axiosClient.interceptors.response.use(
       toast.error("Resource not found");
     } else if (error.response?.status === 400) {
       toast.error(errorMessage);
+    } else if (error.response?.status === 403) {
+      toast.error("Access denied. You don't have permission.");
     } else if (!error.response) {
       toast.error("Network error. Please check your connection.");
     }

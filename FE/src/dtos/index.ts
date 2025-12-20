@@ -14,8 +14,8 @@ export interface TechnicianDto {
   email?: string;
   password: string;
   phone: string;
-  dob?: string;
-  doj?: string;
+  dob?: string | null;
+  doj?: string | null;
   address?: string;
 }
 
@@ -75,12 +75,12 @@ export interface SparesDto {
 export interface SalesPersonDto{
   id: number;
   name: string;
-  email?: string;
+  email?: string | null;
   password: string;
   phone: string;
-  dob?: string;
-  doj?: string;
-  address?: string;
+  dob?: string | null;
+  doj?: string | null;
+  address?: string | null;
 }
 
 export interface VendorDto{

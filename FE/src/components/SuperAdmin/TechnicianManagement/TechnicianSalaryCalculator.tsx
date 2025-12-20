@@ -55,37 +55,21 @@ export function TechnicianSalaryCalculator() {
                 const { start, end } = getDateRange();
                 const technicianId = parseInt(selectedTechnicianId);
 
-                // Fetch completed jobs
-                const completedParams = {
-                    status: "Completed",
-                    fromDate: format(start, "yyyy-MM-dd"),
-                    toDate: format(end, "yyyy-MM-dd"),
-                    limit: -1, // Get all results
-                };
-
-                // Fetch delivered jobs
-                const deliveredParams = {
-                    status: "Delivered",
-                    fromDate: format(start, "yyyy-MM-dd"),
-                    toDate: format(end, "yyyy-MM-dd"),
-                    limit: -1, // Get all results
-                };
-
-                const [completedResponse, deliveredResponse] = await Promise.all([
-                    crmApi.jobSheet.getAll(completedParams),
-                    crmApi.jobSheet.getAll(deliveredParams),
-                ]);
-
-                const completedJobs = completedResponse.data.items || [];
-                const deliveredJobs = deliveredResponse.data.items || [];
-                const allJobSheets = [...completedJobs, ...deliveredJobs];
-
-                // Filter by selected technician (receivedBy)
-                const filtered = allJobSheets.filter((job: JobSheetDto) =>
-                    job.receivedBy?.id === technicianId
+                // Fetch jobs with multiple statuses
+                const statuses = ["Completed", "Delivered", "Not Repairable", "Repair Declined", "Paid"];
+                const jobSheetPromises = statuses.map(status => 
+                    crmApi.jobSheet.getAll({
+                        status: status,
+                        fromDate: format(start, "yyyy-MM-dd"),
+                        toDate: format(end, "yyyy-MM-dd"),
+                        limit: -1, // Get all results
+                    })
                 );
 
-                setJobSheets(filtered);
+                const responses = await Promise.all(jobSheetPromises);
+                const allJobSheets = responses.flatMap(response => response.data.items || []);
+
+                setJobSheets(allJobSheets);
             } catch (error) {
                 toast.error("Failed to load job sheets");
                 console.error(error);
@@ -125,7 +109,7 @@ export function TechnicianSalaryCalculator() {
 
     // Calculate totals
     const totalAmountCollected = jobSheets.reduce((sum, job) => {
-        return sum + (job.totalAmount || 0);
+        return sum + (Number(job.totalAmount) || 0);
     }, 0);
 
     const percentageValue = parseFloat(percentage) || 0;
@@ -256,7 +240,7 @@ export function TechnicianSalaryCalculator() {
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                        <div className="p-4 space-y-4">
+                                        <div className="p-4 flex gap-4">
                                             <div>
                                                 <Label className="text-xs mb-2 block">Start Date</Label>
                                                 <Calendar
@@ -376,7 +360,7 @@ export function TechnicianSalaryCalculator() {
                                     </TableHeader>
                                     <TableBody>
                                         {jobSheets.map((job) => {
-                                            const amountPaid = job.totalAmount || 0;
+                                            const amountPaid = Number(job.totalAmount) || 0;
                                             const earnings = (amountPaid * percentageValue) / 100;
 
                                             return (
@@ -401,11 +385,14 @@ export function TechnicianSalaryCalculator() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge
-                                                            variant={job.status === "Completed" ? "default" : "outline"}
+                                                            variant="outline"
                                                             className={cn(
                                                                 "px-2 py-1 text-xs",
                                                                 job.status === "Completed" && "bg-green-100 text-green-700 border-green-200",
-                                                                job.status === "Delivered" && "bg-blue-100 text-blue-700 border-blue-200"
+                                                                job.status === "Delivered" && "bg-blue-100 text-blue-700 border-blue-200",
+                                                                job.status === "Not Repairable" && "bg-red-100 text-red-700 border-red-200",
+                                                                job.status === "Repair Declined" && "bg-orange-100 text-orange-700 border-orange-200",
+                                                                job.status === "Paid" && "bg-purple-100 text-purple-700 border-purple-200"
                                                             )}
                                                         >
                                                             {job.status}

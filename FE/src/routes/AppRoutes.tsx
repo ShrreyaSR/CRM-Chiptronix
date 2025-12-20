@@ -1,5 +1,8 @@
-import { Routes, Route, useNavigate, useSearchParams } from "react-router-dom";
+import { Routes, Route, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import React from "react";
+import { ProtectedRoute } from "../components/ProtectedRoute";
+import { LoginPage } from "../components/LoginPage";
+import { useAuth } from "../contexts/AuthContext";
 
 // Layout Components
 import SuperAdminLayout from "../components/Layouts/SuperAdminLayout";
@@ -53,10 +56,36 @@ import { SalesOrders } from "../components/Sales/Orders";
   }
 
 export default function AppRoutes() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
+      {/* Login Route */}
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? <Navigate to="/super-admin" replace /> : <LoginPage />
+        }
+      />
+
       {/* Super Admin Dashboard */}
-      <Route path="/super-admin" element={<SuperAdminLayout />}>
+      <Route
+        path="/super-admin"
+        element={
+          <ProtectedRoute requiredRole="super-admin">
+            <SuperAdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" element={<SuperAdminJobSheet />} />
         <Route path="jobsheet" element={<SuperAdminJobSheet />} />
         <Route path="add-jobsheet" element={<SuperAdminAddJobSheetWrapper />} />
         <Route path="technician" element={<SuperAdminTechnician />} />
@@ -66,7 +95,15 @@ export default function AppRoutes() {
       </Route>
 
       {/* Admin Dashboard */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" element={<AdminJobSheet />} />
         <Route path="jobsheet" element={<AdminJobSheet />} />
         <Route path="add-jobsheet" element={<AdminAddJobSheet />} />
         <Route path="technician" element={<AdminTechnician />} />
@@ -76,22 +113,49 @@ export default function AppRoutes() {
       </Route>
 
       {/* Technician Dashboard */}
-      <Route path="/technician" element={<TechnicianLayout />}>
+      <Route
+        path="/technician"
+        element={
+          <ProtectedRoute requiredRole="technician">
+            <TechnicianLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" element={<TechnicianJobSheet />} />
         <Route path="jobsheet" element={<TechnicianJobSheet />} />
         <Route path="orders" element={<TechnicianOrders />} />
         <Route path="add-jobsheet" element={<TechnicianAddJobSheetWrapper />} />
       </Route>
 
-      {/* Client Dashboard */}
-      <Route path="/client" element={<ClientLayout />}>
+      {/* Client/Dealer Dashboard */}
+      <Route
+        path="/client"
+        element={
+          <ProtectedRoute requiredRole="dealer">
+            <ClientLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" element={<ClientJobSheet />} />
         <Route path="jobsheet" element={<ClientJobSheet />} />
         <Route path="payment" element={<ClientPayment />} />
       </Route>
 
       {/* Sales Dashboard */}
-      <Route path="/sales" element={<SalesLayout />}>
+      <Route
+        path="/sales"
+        element={
+          <ProtectedRoute requiredRole="sales">
+            <SalesLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="" element={<SalesOrders />} />
         <Route path="orders" element={<SalesOrders />} />
       </Route>
+
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

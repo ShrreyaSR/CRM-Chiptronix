@@ -310,7 +310,7 @@ function ClientDialogs({
             >
               Cancel
             </Button>
-            <Button onClick={handleAdd}>Add Client</Button>
+            <Button disabled={!formData.name || !formData.phone || !formData.clientType || (formData.clientType === "Dealer" && !formData.passwordIfDealer)} onClick={handleAdd}>Add Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -334,7 +334,7 @@ function ClientDialogs({
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdate}>Update Client</Button>
+            <Button disabled={!formData.name || !formData.phone || !formData.clientType || (formData.clientType === "Dealer" && !formData.passwordIfDealer)} onClick={handleUpdate}>Update Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -370,15 +370,15 @@ function ClientDialogs({
 function ClientForm({ formData, setFormData }: ClientFormProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-      <div>
-        <Label>Client Name</Label>
+      <div className="space-y-2">
+        <Label>Client Name *</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
       </div>
 
-      <div>
+      <div className="space-y-2">
         <Label>Email</Label>
         <Input
           type="email"
@@ -387,23 +387,36 @@ function ClientForm({ formData, setFormData }: ClientFormProps) {
             setFormData({ ...formData, email: e.target.value })
           }
         />
+        {formData.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+            <p className="text-xs text-red-500">
+              Please enter a valid email address
+            </p>
+          )}
       </div>
 
-      <div>
-        <Label>Phone</Label>
+      <div className="space-y-2">
+        <Label>Phone *</Label>
         <Input
           value={formData.phone}
+          type="number"
+          maxLength={10}
           onChange={(e) =>
             setFormData({ ...formData, phone: e.target.value })
           }
         />
+        {formData.phone && formData.phone.length !== 10 && (
+          <p className="text-xs text-red-500">
+            Phone number must be 10 digits
+          </p>
+        )}
       </div>
 
-      <div>
+      <div className="space-y-2">
         <Label>Type</Label>
         <Select
           value={formData.clientType}
-          onValueChange={(v:any) =>
+          onValueChange={(v: any) =>
             setFormData({ ...formData, clientType: v })
           }
         >
@@ -417,7 +430,7 @@ function ClientForm({ formData, setFormData }: ClientFormProps) {
         </Select>
       </div>
 
-      <div className="md:col-span-2">
+      <div className="md:col-span-2 space-y-2">
         <Label>Address</Label>
         <Input
           value={formData.address}
@@ -427,18 +440,19 @@ function ClientForm({ formData, setFormData }: ClientFormProps) {
         />
       </div>
 
-      <div className="md:col-span-2">
-        <Label>Dealer Password</Label>
-        <Input
-          value={formData.passwordIfDealer}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              passwordIfDealer: e.target.value,
-            })
-          }
-        />
-      </div>
+      {formData.clientType === "Dealer" && (
+        <div className="md:col-span-2 space-y-2">
+          <Label>Dealer Password *</Label>
+          <Input
+            value={formData.passwordIfDealer}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                passwordIfDealer: e.target.value,
+              })
+            }
+          />
+        </div>)}
     </div>
   );
 }

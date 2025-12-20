@@ -280,19 +280,20 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       const models = brands.filter(b => b.brand === selectedBrandName);
       setAvailableModels(models);
       
-      // Only generate serial number in add mode (not edit mode)
-      if (!isEditMode) {
+      // Only generate serial number in add mode (not edit mode) and if serial number is empty
+      if (!isEditMode && !formData.serialNumber) {
         const serialNumber = generateSerialNumber(selectedBrandName);
         setFormData(prev => ({ ...prev, serialNumber }));
+      }
 
-        // If only one model, auto-select it
-        if (models.length === 1) {
-          setSelectedModelId(models[0].id.toString());
-          setFormData(prev => ({ ...prev, brandId: models[0].id.toString() }));
-        } else {
-          setSelectedModelId("");
-          setFormData(prev => ({ ...prev, brandId: "" }));
-        }
+      // If only one model, auto-select it
+      if (models.length === 1) {
+        setSelectedModelId(models[0].id.toString());
+        setFormData(prev => ({ ...prev, brandId: models[0].id.toString() }));
+      } else if (!isEditMode) {
+        // In add mode, clear selection if multiple models
+        setSelectedModelId("");
+        setFormData(prev => ({ ...prev, brandId: "" }));
       } else {
         // In edit mode, ensure the model is selected based on formData.brandId
         if (formData.brandId) {
@@ -311,21 +312,47 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   }, [selectedBrandName, brands, isEditMode, formData.brandId, selectedModelId]);
 
   // Helper functions
-  const generateSerialNumber = (brand: string): string => {
-    const prefix = brand.substring(0, 2).toUpperCase();
+  const generateSerialNumber = (brand?: string): string => {
+    const prefix = brand ? brand.substring(0, 2).toUpperCase() : "SN";
     const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    return `${prefix}${timestamp}${random}`;
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const unique = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}${timestamp}${random}${unique}`;
   };
+
+  // Validation functions for add dialogs
+  const canAddClient = clientFormData.name.trim() !== "" && clientFormData.phone.trim() !== "" && clientFormData.address.trim() !== "" && (!clientFormData.clientType || clientFormData.clientType === "Customer" || (clientFormData.clientType === "Dealer" && clientFormData.passwordIfDealer.trim() !== ""));
+  const canAddBrand = brandFormData.brand.trim() !== "" && brandFormData.model.trim() !== "";
+  const canAddComplaint = complaintFormData.description.trim() !== "";
+  const canAddTray = trayFormData.numberOfTrays > 0 && trayFormData.numberOfTrays <= 200;
+  const canAddTechnician = technicianFormData.name.trim() !== "" && technicianFormData.password.trim() !== "" && technicianFormData.phone.trim() !== "";
+
+  // Validation for main job sheet form
+  const canSaveJobSheet = formData.clientId && formData.serviceType && formData.deviceType && formData.brandId && formData.complaintId && formData.trayId && formData.receivedById && formData.serialNumber.trim() !== "";
 
   // Handle create/update job sheet
   const handleSaveJobSheet = async () => {
-    if (!formData.clientId || !formData.serviceType || !formData.deviceType || !formData.complaintId || !formData.receivedById) {
+    if (!canSaveJobSheet) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     try {
+      setLoading(true);
+      let previousStatus: string | undefined;
+      let previousTrayId: number | undefined;
+
+      // Get previous status and tray for edit mode to handle tray status updates
+      if (isEditMode && jobSheetId) {
+        try {
+          const existingJob = await crmApi.jobSheet.getById(parseInt(jobSheetId));
+          previousStatus = existingJob.data.data?.status;
+          previousTrayId = existingJob.data.data?.tray?.id;
+        } catch (error) {
+          console.error("Error fetching existing job sheet:", error);
+        }
+      }
+
       const jobSheetData: any = {
         client: parseInt(formData.clientId),
         serviceType: formData.serviceType,
@@ -364,6 +391,34 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         jobSheetData.spares = null;
       }
 
+      // Update tray status when creating new job sheet
+      if (!isEditMode) {
+        // Set tray to Occupied when creating new job sheet
+        await crmApi.tray.update(parseInt(formData.trayId), { status: "Occupied" });
+      } else if (isEditMode && jobSheetId) {
+        // Handle tray status updates in edit mode
+        const currentTrayId = parseInt(formData.trayId);
+        const newStatus = formData.status;
+
+        // If tray changed, free the old tray and occupy the new one
+        if (previousTrayId && previousTrayId !== currentTrayId) {
+          await crmApi.tray.update(previousTrayId, { status: "Free" });
+          await crmApi.tray.update(currentTrayId, { status: "Occupied" });
+        }
+
+        // If status changed to Completed or Delivered, free the tray
+        if ((previousStatus !== "Completed" && newStatus === "Completed") || 
+            (previousStatus !== "Delivered" && newStatus === "Delivered")) {
+          await crmApi.tray.update(currentTrayId, { status: "Free" });
+        }
+        // If status changed from Completed or Delivered to something else, occupy the tray (unless it's already occupied by another job)
+        else if ((previousStatus === "Completed" || previousStatus === "Delivered") && 
+                 newStatus !== "Completed" && newStatus !== "Delivered" && 
+                 previousTrayId === currentTrayId) {
+          await crmApi.tray.update(currentTrayId, { status: "Occupied" });
+        }
+      }
+
       if (isEditMode && jobSheetId) {
         await crmApi.jobSheet.update(parseInt(jobSheetId), jobSheetData);
         toast.success("Job sheet updated successfully");
@@ -371,10 +426,15 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         await crmApi.jobSheet.create(jobSheetData);
         toast.success("Job sheet created successfully");
       }
+
+      // Refresh trays to show updated status
+      await fetchAllData();
       onBack();
     } catch (error) {
       toast.error(`Failed to ${isEditMode ? 'update' : 'create'} job sheet`);
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -506,8 +566,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </Button>
           <Button
             onClick={handleSaveJobSheet}
-            disabled={loading}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg"
+            disabled={loading || !canSaveJobSheet}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Loading..." : isEditMode ? "Update Job Sheet" : "Create Job Sheet"}
           </Button>
@@ -676,14 +736,27 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="serialNumber" className="text-gray-700">Serial Number</Label>
-                    <Input
-                      id="serialNumber"
-                      placeholder="Auto-generated"
-                      value={formData.serialNumber}
-                      readOnly
-                      className="rounded-xl border-gray-200 bg-gray-50 cursor-not-allowed"
-                    />
+                    <Label htmlFor="serialNumber" className="text-gray-700">Serial Number *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="serialNumber"
+                        placeholder="Enter or generate serial number"
+                        value={formData.serialNumber}
+                        onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                        className="rounded-xl border-gray-200 flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const generated = generateSerialNumber(selectedBrandName || undefined);
+                          setFormData({ ...formData, serialNumber: generated });
+                        }}
+                        className="rounded-xl border-gray-200 whitespace-nowrap"
+                      >
+                        Generate
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -864,8 +937,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                       className="rounded-xl border-gray-200"
                     />
                   </div>
-                  {/* Total Amount - Only in Edit Mode and when status is Completed or Delivered */}
-                  {isEditMode && (formData.status === "Completed" || formData.status === "Delivered") && (
+                  {/* Total Amount - Only in Edit Mode and when status is Completed, Delivered, Paid, Repair Declined, or Not Repairable */}
+                  {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Not Repairable") && (
                   <div className="space-y-2">
                       <Label htmlFor="totalAmount" className="text-gray-700">Total Amount (₹)</Label>
                     <Input
@@ -881,8 +954,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 </div>
               </div>
 
-              {/* Fix Summary - Only in Edit Mode and when status is Completed or Delivered */}
-              {isEditMode && (formData.status === "Completed" || formData.status === "Delivered") && (
+              {/* Fix Summary - Only in Edit Mode and when status is Completed, Delivered, Paid, Repair Declined, or Not Repairable */}
+              {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Not Repairable") && (
               <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
                     <FileText className="w-4 h-4 text-blue-600" />
@@ -1173,7 +1246,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsClientDialogOpen(false)} className="rounded-lg">Cancel</Button>
-            <Button onClick={handleAddClient} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg">Add Client</Button>
+            <Button onClick={handleAddClient} disabled={!canAddClient} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Add Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1214,7 +1287,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsBrandDialogOpen(false)} className="rounded-lg">Cancel</Button>
-            <Button onClick={handleAddBrand} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg">Add Brand/Model</Button>
+            <Button onClick={handleAddBrand} disabled={!canAddBrand} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Add Brand/Model</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1237,7 +1310,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsComplaintDialogOpen(false)} className="rounded-lg">Cancel</Button>
-            <Button onClick={handleAddComplaint} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg">Add Complaint</Button>
+            <Button onClick={handleAddComplaint} disabled={!canAddComplaint} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Add Complaint</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1250,7 +1323,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
             <DialogDescription>Specify how many trays you want to add</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Label>Number of Trays to Add</Label>
+            <Label>Number of Trays to Add *</Label>
             <Input
               type="number"
               min="1"
@@ -1261,7 +1334,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTrayDialogOpen(false)} className="rounded-lg">Cancel</Button>
-            <Button onClick={handleAddTray} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg">Add Trays</Button>
+            <Button onClick={handleAddTray} disabled={!canAddTray} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Add Trays</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1337,7 +1410,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTechnicianDialogOpen(false)} className="rounded-lg">Cancel</Button>
-            <Button onClick={handleAddTechnician} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg">Add Technician</Button>
+            <Button onClick={handleAddTechnician} disabled={!canAddTechnician} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Add Technician</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

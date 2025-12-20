@@ -4,42 +4,31 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Cpu, Lock, User, AlertCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
-import React from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import React from "react";
+import { useAuth, UserRole } from "../contexts/AuthContext";
 
-interface LoginPageProps {
-  onLogin: (userType: 'admin' | 'technician' | 'sales') => void;
-}
-
-export function LoginPage({ onLogin }: LoginPageProps) {
-  const [username, setUsername] = useState("");
+export function LoginPage() {
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("technician");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      const credentials = {
-        admin: { username: "admin", password: "admin123" },
-        technician: { username: "tech", password: "tech123" },
-        sales: { username: "sales", password: "sales123" }
-      };
-
-      if (username === credentials.admin.username && password === credentials.admin.password) {
-        onLogin('admin');
-      } else if (username === credentials.technician.username && password === credentials.technician.password) {
-        onLogin('technician');
-      } else if (username === credentials.sales.username && password === credentials.sales.password) {
-        onLogin('sales');
-      } else {
-        setError("Invalid credentials.");
-        setIsLoading(false);
-      }
-    }, 800);
+    try {
+      await login(emailOrPhone, password, role);
+      // Navigation will be handled by AuthContext
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "Invalid credentials. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -85,17 +74,32 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-gray-700">Username</Label>
+                  <Label htmlFor="role" className="text-gray-700">Role</Label>
+                  <Select value={role} onValueChange={(value: UserRole) => setRole(value)}>
+                    <SelectTrigger className="h-12 bg-white/50 backdrop-blur-sm border-gray-200/50 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="super-admin">Super Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="sales">Sales</SelectItem>
+                      <SelectItem value="dealer">Dealer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emailOrPhone" className="text-gray-700">Email or Phone</Label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity blur"></div>
                     <div className="relative flex items-center">
-                      <User className="absolute left-4 h-5 w-5 text-gray-900" />
                       <Input
-                        id="username"
+                        id="emailOrPhone"
                         type="text"
-                        placeholder="Enter your username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter your email or phone number"
+                        value={emailOrPhone}
+                        onChange={(e) => setEmailOrPhone(e.target.value)}
                         className="pl-12 h-12 bg-white/50 backdrop-blur-sm border-gray-200/50 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl transition-all"
                         required
                       />
@@ -108,7 +112,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-10 transition-opacity blur"></div>
                     <div className="relative flex items-center">
-                      <Lock className="absolute left-4 h-5 w-5 text-gray-900" />
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}

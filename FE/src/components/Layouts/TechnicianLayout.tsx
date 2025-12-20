@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../ui/utils";
 import { Cpu, LogOut, ClipboardList, Package } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Tooltip,
   TooltipTrigger,
@@ -15,6 +16,7 @@ export default function TechnicianLayout() {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     { id: "jobsheet", label: "Job Sheet", icon: ClipboardList, path: "/technician/jobsheet" },
@@ -22,12 +24,23 @@ export default function TechnicianLayout() {
   ];
 
   const onLogout = () => {
-    console.log("Logging out...");
-    navigate("/");
+    logout();
+  };
+
+  const getUserInitials = () => {
+    if (user?.name) {
+      return user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return "U";
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 flex">
+    <div className="h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 flex">
       {/* Sidebar */}
       <aside
         onMouseEnter={() => setIsCollapsed(false)}
@@ -51,7 +64,7 @@ export default function TechnicianLayout() {
             {!isCollapsed && (
               <div className="transition-opacity duration-200">
                 <h2 className="text-gray-900 whitespace-nowrap font-bold">Chiptronix</h2>
-                <p className="text-xs text-gray-500 whitespace-nowrap">Super Admin</p>
+                <p className="text-xs text-gray-500 whitespace-nowrap">Technician</p>
               </div>
             )}
           </div>
@@ -106,15 +119,17 @@ export default function TechnicianLayout() {
         </nav>
 
         {/* User Section */}
-        {!isCollapsed && (
+        {!isCollapsed && user && (
           <div className="p-4 border-t border-gray-200/50">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-blue-50/50 mb-3">
               <Avatar className="w-10 h-10 border-2 border-blue-200">
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">SA</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+                  {getUserInitials()}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 truncate">Super Admin</p>
-                <p className="text-xs text-gray-500 truncate">superadmin@chiptronix.com</p>
+                <p className="text-sm text-gray-900 truncate">{user.name || "Technician"}</p>
+                <p className="text-xs text-gray-500 truncate">{user.email || user.phone || ""}</p>
               </div>
             </div>
           </div>

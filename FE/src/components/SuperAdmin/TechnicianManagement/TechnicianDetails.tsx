@@ -207,7 +207,7 @@ function TechnicianAddDialog({
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Add Technician</Button>
+          <Button disabled={!formData.name || !formData.phone || !formData.password} onClick={onSubmit}>Add Technician</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -238,7 +238,7 @@ function TechnicianEditDialog({
           <Button variant="outline" onClick={() => onClose(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Update Technician</Button>
+          <Button disabled={!formData.name || !formData.phone || !formData.password} onClick={onSubmit}>Update Technician</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -258,25 +258,89 @@ function TechnicianForm({
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-      {[
-        ["name", "Full Name"],
-        ["email", "Email"],
-        ["password", "Password"],
-        ["phone", "Phone Number"],
-      ].map(([key, label]) => (
-        <div className="space-y-2" key={key}>
-          <Label>{label} *</Label>
-          <Input
-            value={formData[key]}
-            type={key === "password" ? "password" : "text"}
-            onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-            className="rounded-xl"
-          />
-        </div>
-      ))}
+      {/* Full Name */}
+      <div className="space-y-2">
+        <Label>
+          Full Name <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="text"
+          value={formData.name}
+          onChange={(e) =>
+            setFormData({ ...formData, name: e.target.value })
+          }
+          className="rounded-xl"
+          required
+        />
+      </div>
+
+      {/* Email */}
+      <div className="space-y-2">
+        <Label>
+          Email
+        </Label>
+        <Input
+          type="email"
+          value={formData.email}
+          onChange={(e) =>
+            setFormData({ ...formData, email: e.target.value })
+          }
+          className="rounded-xl"
+          required
+        />
+        {formData.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+            <p className="text-xs text-red-500">
+              Please enter a valid email address
+            </p>
+          )}
+      </div>
+
+      {/* Password */}
+      <div className="space-y-2">
+        <Label>
+          Password <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="password"
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+          className="rounded-xl"
+          required
+        />
+      </div>
+
+      {/* Phone Number */}
+      <div className="space-y-2">
+        <Label>
+          Phone Number <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => {
+            const digitsOnly = e.target.value.replace(/\D/g, "");
+            if (digitsOnly.length <= 10) {
+              setFormData({ ...formData, phone: digitsOnly });
+            }
+          }}
+          maxLength={10}
+          placeholder="10-digit phone number"
+          className="rounded-xl"
+          required
+        />
+        {formData.phone && formData.phone.length !== 10 && (
+          <p className="text-xs text-red-500">
+            Phone number must be 10 digits
+          </p>
+        )}
+      </div>
+
 
       <div className="space-y-2">
-        <Label>DOB *</Label>
+        <Label>DOB</Label>
         <Input
           type="date"
           value={formData.dob}
@@ -285,7 +349,7 @@ function TechnicianForm({
       </div>
 
       <div className="space-y-2">
-        <Label>DOJ *</Label>
+        <Label>DOJ</Label>
         <Input
           type="date"
           value={formData.doj}
@@ -294,7 +358,7 @@ function TechnicianForm({
       </div>
 
       <div className="space-y-2 md:col-span-2">
-        <Label>Address *</Label>
+        <Label>Address</Label>
         <Input
           value={formData.address}
           onChange={(e) =>
@@ -361,8 +425,8 @@ export function Technician() {
     email: "",
     password: "",
     phone: "",
-    dob: "",
-    doj: "",
+    dob: null,
+    doj: null,
     address: "",
   });
 
@@ -385,8 +449,8 @@ export function Technician() {
       email: "",
       password: "",
       phone: "",
-      dob: "",
-      doj: "",
+      dob: null,
+      doj: null,
       address: "",
     });
   };

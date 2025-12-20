@@ -19,12 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
-import { Search, Plus, Edit } from "lucide-react";
+import { Search, Plus, Edit, AlertCircle } from "lucide-react";
 import { Badge } from "../../ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "../../ui/tabs";
 
 import { TrayDto as Tray } from "../../../dtos";
 import { crmApi } from "../../../api";
+import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
 
 /* =====================================================================================
    COMPONENT 1: Toolbar (Search + Filters + Add Button)
@@ -178,6 +179,7 @@ function AddTrayDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl">
+        
         <DialogHeader>
           <DialogTitle>Add Multiple Trays</DialogTitle>
           <DialogDescription>
@@ -193,9 +195,10 @@ function AddTrayDialog({
             max="200"
             value={numberOfTraysToAdd}
             onChange={(e) =>
-              setNumberOfTraysToAdd(parseInt(e.target.value) || 1)
+              setNumberOfTraysToAdd(parseInt(e.target.value))
             }
           />
+          <p className="text-xs text-gray-500">* The number of trays to add must be greater than the number of existing trays.</p>
 
           <p className="text-sm text-gray-500">
             {trays.length > 0
@@ -218,6 +221,7 @@ function AddTrayDialog({
           <Button
             onClick={handleAddTrays}
             className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white"
+            disabled={numberOfTraysToAdd < trays.length}
           >
             Add {numberOfTraysToAdd} Tray
           </Button>
