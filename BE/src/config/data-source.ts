@@ -9,6 +9,7 @@ import { JobSheet } from "../entities/JobSheet";
 import { SalesPerson } from "../entities/SalesPerson";
 import { Vendor } from "../entities/Vendor";
 import { Spares } from "../entities/Spares";
+import { AdminUser } from "../entities/AdminUser";
 import { env } from "./env";
 import { logger } from "../utils/logger";
 
@@ -30,7 +31,8 @@ export const AppDataSource = new DataSource({
     JobSheet,
     Vendor,
     SalesPerson,
-    Spares
+    Spares,
+    AdminUser
   ],
 });
 

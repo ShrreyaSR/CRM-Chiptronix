@@ -8,6 +8,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 
 // Routes
+import authRoute from "./routes/AuthRoute";
 import technicianRoutes from "./routes/TechnicianRoute";
 import clientRoutes from "./routes/ClientRoute";
 import complaintRoutes from "./routes/ComplaintRoute";
@@ -23,6 +24,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
+
+// Auth routes (public)
+app.use("/auth", authRoute);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

@@ -162,7 +162,7 @@ Body: {
   "assignedTo": { "id": 1 },
   "receivedBy": { "id": 1 },
   "estimateAmount": 5000,
-  "advancePayment": 2000,
+  "payment": 2000,
   "status": "Pending"
 }
 ```

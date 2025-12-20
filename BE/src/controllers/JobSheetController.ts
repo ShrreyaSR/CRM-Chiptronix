@@ -17,6 +17,8 @@ export class JobSheetController {
         sortOrder,
         page,
         limit,
+        hasSpares,
+        spareStatus,
       } = req.query;
 
       const result = await service.getAllJobs({
@@ -28,8 +30,13 @@ export class JobSheetController {
         toDate: (toDate as string) || "",
         sortField: (sortField as string) || "createdOn",
         sortOrder: (sortOrder as "ASC" | "DESC") || "DESC",
-        page: (Number(page) as number) || 1,
-        limit: (Number(limit) as number) || 10,
+        page: Number(page) || 1,
+        limit: Number(limit) || 10,
+        hasSpares:
+          typeof hasSpares === "string"
+            ? hasSpares.toLowerCase() === "true"
+            : Boolean(hasSpares),
+        spareStatus: (spareStatus as string) || "",
       });
       res.json({ success: true, ...result });
     } catch (error) {

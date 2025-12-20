@@ -379,7 +379,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"client\": {\n    \"id\": 1\n  },\n  \"serviceType\": \"Chip level\",\n  \"deviceType\": \"Laptop\",\n  \"brand\": {\n    \"id\": 1\n  },\n  \"color\": \"Black\",\n  \"serialNumber\": \"SN123456789\",\n  \"complaint\": {\n    \"id\": 1\n  },\n  \"problemsIdentified\": \"Screen not working, battery dead\",\n  \"tray\": {\n    \"id\": 1\n  },\n  \"receivedFrom\": \"Customer directly\",\n  \"assignedTo\": {\n    \"id\": 1\n  },\n  \"receivedBy\": {\n    \"id\": 1\n  },\n  \"estimateAmount\": 5000,\n  \"advancePayment\": 2000,\n  \"status\": \"Pending\"\n}"
+							"raw": "{\n  \"client\": {\n    \"id\": 1\n  },\n  \"serviceType\": \"Chip level\",\n  \"deviceType\": \"Laptop\",\n  \"brand\": {\n    \"id\": 1\n  },\n  \"color\": \"Black\",\n  \"serialNumber\": \"SN123456789\",\n  \"complaint\": {\n    \"id\": 1\n  },\n  \"problemsIdentified\": \"Screen not working, battery dead\",\n  \"tray\": {\n    \"id\": 1\n  },\n  \"receivedFrom\": \"Customer directly\",\n  \"assignedTo\": {\n    \"id\": 1\n  },\n  \"receivedBy\": {\n    \"id\": 1\n  },\n  \"estimateAmount\": 5000,\n  \"payment\": 2000,\n  \"status\": \"Pending\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/jobsheets",
@@ -1181,5 +1181,6 @@
 		}
 	]
 }
+
 
 

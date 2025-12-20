@@ -21,6 +21,8 @@ export class JobSheetService {
       sortOrder,
       page,
       limit,
+      hasSpares,
+      spareStatus,
     } = query;
 
     const qb = this.repo
@@ -55,6 +57,12 @@ export class JobSheetService {
     if (status) qb.andWhere("job.status = :status", { status });
     if (client) qb.andWhere("client.id = :client", { client });
     if (assignedTo) qb.andWhere("assignedTo.id = :assignedTo", { assignedTo });
+    if (hasSpares === true || hasSpares === "true") {
+      qb.andWhere("spares.id IS NOT NULL");
+    }
+    if (spareStatus) {
+      qb.andWhere("spares.status = :spareStatus", { spareStatus });
+    }
     if (fromDate && toDate) {
       qb.andWhere(`job."createdOn" BETWEEN :from AND :to`, {
         from: `${fromDate} 00:00:00`,
