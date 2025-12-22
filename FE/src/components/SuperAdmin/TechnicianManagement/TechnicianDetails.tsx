@@ -344,6 +344,7 @@ function TechnicianForm({
         <Input
           type="date"
           value={formData.dob}
+          max={new Date().toISOString().split("T")[0]}
           onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
         />
       </div>
@@ -353,6 +354,7 @@ function TechnicianForm({
         <Input
           type="date"
           value={formData.doj}
+          max={new Date().toISOString().split("T")[0]}
           onChange={(e) => setFormData({ ...formData, doj: e.target.value })}
         />
       </div>

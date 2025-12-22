@@ -56,8 +56,19 @@ export function TechnicianSalaryCalculator() {
                 const technicianId = parseInt(selectedTechnicianId);
 
                 // Fetch jobs with multiple statuses
-                const statuses = ["Completed", "Delivered", "Not Repairable", "Repair Declined", "Paid"];
-                const jobSheetPromises = statuses.map(status => 
+                // Include both variants: "Repair Declined" includes "Repair Declined - Delivered"
+                // "Not Repairable" includes "Not Repairable - Delivered"
+                // "Delivered" includes all delivered types
+                const statuses = [
+                    "Completed", 
+                    "Delivered", 
+                    "Not Repairable", 
+                    "Not Repairable - Delivered",
+                    "Repair Declined", 
+                    "Repair Declined - Delivered",
+                    "Paid"
+                ];
+                const jobSheetPromises = statuses.map(status =>
                     crmApi.jobSheet.getAll({
                         status: status,
                         fromDate: format(start, "yyyy-MM-dd"),
@@ -69,7 +80,19 @@ export function TechnicianSalaryCalculator() {
                 const responses = await Promise.all(jobSheetPromises);
                 const allJobSheets = responses.flatMap(response => response.data.items || []);
 
-                setJobSheets(allJobSheets);
+                // Filter by selected technician (assignedTo)
+                // Compare as numbers to ensure proper matching
+                const filtered = allJobSheets.filter((job: JobSheetDto) => {
+                    const assignedToId = job.assignedTo?.id;
+                    return assignedToId !== undefined && Number(assignedToId) === technicianId;
+                });
+
+                // Deduplicate by job ID to avoid counting the same job multiple times if it appears in multiple status responses
+                const uniqueJobSheets = Array.from(
+                    new Map(filtered.map((job: JobSheetDto) => [job.id, job])).values()
+                );
+
+                setJobSheets(uniqueJobSheets);
             } catch (error) {
                 toast.error("Failed to load job sheets");
                 console.error(error);
@@ -201,16 +224,26 @@ export function TechnicianSalaryCalculator() {
                                 Salary Percentage (%)
                             </Label>
                             <Input
-                                id="percentage"
                                 type="number"
                                 min="0"
                                 max="100"
                                 step="0.1"
-                                placeholder="Enter %"
                                 value={percentage}
-                                onChange={(e) => setPercentage(e.target.value)}
-                                className="bg-white border-gray-200"
+                                onChange={(e) => {
+                                    const value = e.target.value;
+
+                                    if (value === "") {
+                                        setPercentage("");
+                                        return;
+                                    }
+
+                                    const num =value;
+                                    if (Number(num) >= 0 && Number(num) <= 100) {
+                                        setPercentage(num);
+                                    }
+                                }}
                             />
+
                         </div>
 
                         {/* Date Range Display/Selector */}
@@ -351,7 +384,7 @@ export function TechnicianSalaryCalculator() {
                                             <TableHead>Device</TableHead>
                                             <TableHead>Date Received</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Estimate Amount</TableHead>
+                                            <TableHead>Total Amount</TableHead>
                                             <TableHead>Amount Paid</TableHead>
                                             <TableHead className="text-right">
                                                 {percentage && `Earnings (${percentage}%)`}
@@ -390,8 +423,8 @@ export function TechnicianSalaryCalculator() {
                                                                 "px-2 py-1 text-xs",
                                                                 job.status === "Completed" && "bg-green-100 text-green-700 border-green-200",
                                                                 job.status === "Delivered" && "bg-blue-100 text-blue-700 border-blue-200",
-                                                                job.status === "Not Repairable" && "bg-red-100 text-red-700 border-red-200",
-                                                                job.status === "Repair Declined" && "bg-orange-100 text-orange-700 border-orange-200",
+                                                                (job.status === "Not Repairable" || job.status === "Not Repairable - Delivered") && "bg-red-100 text-red-700 border-red-200",
+                                                                (job.status === "Repair Declined" || job.status === "Repair Declined - Delivered") && "bg-orange-100 text-orange-700 border-orange-200",
                                                                 job.status === "Paid" && "bg-purple-100 text-purple-700 border-purple-200"
                                                             )}
                                                         >
@@ -399,7 +432,7 @@ export function TechnicianSalaryCalculator() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
-                                                        {job.estimateAmount ? `₹${job.estimateAmount.toLocaleString('en-IN')}` : "--"}
+                                                        {job.totalAmount ? `₹${Number(job.totalAmount).toLocaleString('en-IN')}` : "--"}
                                                     </TableCell>
                                                     <TableCell>
                                                         <span className="text-green-600">

@@ -23,6 +23,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -156,6 +157,18 @@ export function SuperAdminJobSheet() {
   }>({ from: undefined, to: undefined });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Status update dialog states
+  const [statusUpdateDialog, setStatusUpdateDialog] = useState<{
+    open: boolean;
+    jobId: number | null;
+    newStatus: string | null;
+  }>({ open: false, jobId: null, newStatus: null });
+  const [statusFormData, setStatusFormData] = useState({
+    totalAmount: "",
+    fixSummary: "",
+    amountPaid: "",
+  });
+
   // Sorting state
   const [sortField, setSortField] = useState<keyof JobSheetDto | "">("");
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
@@ -163,7 +176,7 @@ export function SuperAdminJobSheet() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  
+
   // Build params with proper date formatting (using local date, not UTC)
   const params = {
     search: searchTerm || "",
@@ -211,11 +224,30 @@ export function SuperAdminJobSheet() {
         return "bg-gray-100 text-gray-700 border-gray-200";
       case "Repair Declined":
         return "bg-gray-100 text-gray-700 border-gray-200";
+      case "Not Repairable - Delivered":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "Repair Declined - Delivered":
+        return "bg-orange-100 text-orange-700 border-orange-200";
       case "Paid":
         return "bg-green-100 text-green-700 border-green-200";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
+  };
+
+  // Helper function to check if status is a delivered type
+  const isDeliveredStatus = (status: string): boolean => {
+    return status === "Delivered" || status === "Not Repairable - Delivered" || status === "Repair Declined - Delivered";
+  };
+
+  // Helper function to check if status matches "Repair Declined" (both variants)
+  const isRepairDeclinedStatus = (status: string): boolean => {
+    return status === "Repair Declined" || status === "Repair Declined - Delivered";
+  };
+
+  // Helper function to check if status matches "Not Repairable" (both variants)
+  const isNotRepairableStatus = (status: string): boolean => {
+    return status === "Not Repairable" || status === "Not Repairable - Delivered";
   };
 
   // Sorting function
@@ -265,11 +297,65 @@ export function SuperAdminJobSheet() {
   }
 
   // Handler to quickly update status
-  const handleStatusUpdate = async (jobId: number, newStatus: string) => {
+  const handleStatusUpdate = (jobId: number, newStatus: string) => {
+    // Check if status requires additional information
+    if (newStatus === "Completed" || newStatus === "Not Repairable" || newStatus === "Repair Declined") {
+      // Open dialog for total amount and summary
+      setStatusUpdateDialog({ open: true, jobId, newStatus });
+      setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
+    } else if (newStatus === "Paid") {
+      // Open dialog for amount paid
+      setStatusUpdateDialog({ open: true, jobId, newStatus });
+      setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
+    } else {
+      // For other statuses, update directly
+      updateJobSheetStatus(jobId, newStatus, undefined, undefined, undefined);
+    }
+  };
+
+  // Actual update function
+  const updateJobSheetStatus = async (
+    jobId: number,
+    newStatus: string,
+    totalAmount?: number,
+    fixSummary?: string,
+    amountPaid?: number
+  ) => {
     try {
-      await crmApi.jobSheet.update(jobId, { 
-        status: newStatus as "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Paid"
-      });
+      // Get the current job sheet to find its tray ID
+      const currentJob = jobSheets.find(j => Number(j.id) === jobId);
+      
+      const updateData: any = {
+        status: newStatus as "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Not Repairable - Delivered" | "Repair Declined - Delivered" | "Paid"
+      };
+
+      if (totalAmount !== undefined) {
+        updateData.totalAmount = totalAmount;
+      }
+      if (fixSummary !== undefined) {
+        updateData.fixSummary = fixSummary;
+      }
+      if (amountPaid !== undefined) {
+        updateData.amountPaid = amountPaid;
+      }
+
+      await crmApi.jobSheet.update(jobId, updateData);
+
+      // Update tray status if status changed to any delivered type
+      if (currentJob && currentJob.tray?.id) {
+        const trayId = Number(currentJob.tray.id);
+        const wasCompletedOrDelivered = currentJob.status === "Completed" || (currentJob.status && isDeliveredStatus(currentJob.status));
+        const isNowCompletedOrDelivered = newStatus === "Completed" || isDeliveredStatus(newStatus);
+
+        if (isNowCompletedOrDelivered) {
+          // If status changed to Completed or any Delivered status, free the tray
+          await crmApi.tray.update(trayId, { status: "Free" });
+        } else if (wasCompletedOrDelivered && !isNowCompletedOrDelivered) {
+          // If changing from delivered/completed to something else, set tray to occupied
+          await crmApi.tray.update(trayId, { status: "Occupied" });
+        }
+      }
+
       toast.success("Status updated successfully");
       fetchJobSheets(); // Refresh the list
     } catch (error) {
@@ -278,11 +364,43 @@ export function SuperAdminJobSheet() {
     }
   };
 
+  // Handle dialog submit
+  const handleStatusDialogSubmit = async () => {
+    if (!statusUpdateDialog.jobId || !statusUpdateDialog.newStatus) return;
+
+    const { jobId, newStatus } = statusUpdateDialog;
+
+    if (newStatus === "Completed" || newStatus === "Not Repairable" || newStatus === "Repair Declined") {
+      const totalAmount = statusFormData.totalAmount ? parseFloat(statusFormData.totalAmount) : undefined;
+      const fixSummary = statusFormData.fixSummary.trim() || undefined;
+      
+      if (!totalAmount) {
+        toast.error("Please enter total amount");
+        return;
+      }
+
+      await updateJobSheetStatus(jobId, newStatus, totalAmount, fixSummary);
+    } else if (newStatus === "Paid") {
+      const amountPaid = statusFormData.amountPaid ? parseFloat(statusFormData.amountPaid) : undefined;
+      
+      if (!amountPaid) {
+        toast.error("Please enter amount paid");
+        return;
+      }
+
+      await updateJobSheetStatus(jobId, newStatus, undefined, undefined, amountPaid);
+    }
+
+    // Close dialog and reset form
+    setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
+    setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
+  };
+
   // Handler to quickly update assigned technician
   const handleAssignedToUpdate = async (jobId: number, technicianId: number | null) => {
     try {
-      await crmApi.jobSheet.update(jobId, { 
-        assignedTo: technicianId as any 
+      await crmApi.jobSheet.update(jobId, {
+        assignedTo: technicianId as any
       });
       toast.success("Assigned technician updated successfully");
       fetchJobSheets(); // Refresh the list
@@ -301,7 +419,7 @@ export function SuperAdminJobSheet() {
     pending: jobSheets.filter((j) => j.status === "Pending").length,
     inProgress: jobSheets.filter((j) => j.status === "In Progress").length,
     completed: jobSheets.filter((j) => j.status === "Completed").length,
-    delivered: jobSheets.filter((j) => j.status === "Delivered").length,
+    delivered: jobSheets.filter((j) => isDeliveredStatus(j.status)).length,
     waitingSpares: jobSheets.filter((j) => j.status === "Waiting for Spares")
       .length,
     waitingCustomer: jobSheets.filter(
@@ -312,26 +430,26 @@ export function SuperAdminJobSheet() {
 
 
   function DeleteDialog({ open, onClose, onConfirm }: any) {
-  return (
-    <AlertDialog open={open} onOpenChange={onClose}>
-      <AlertDialogContent className="rounded-2xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete the job sheet.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+    return (
+      <AlertDialog open={open} onOpenChange={onClose}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the job sheet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-500 text-white">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirm} className="bg-red-500 text-white">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
 
 
   return (
@@ -673,8 +791,10 @@ export function SuperAdminJobSheet() {
                   </SelectItem>
                   <SelectItem value="Not Repairable">Not Repairable</SelectItem>
                   <SelectItem value="Repair Declined">Repair Declined</SelectItem>
+                  <SelectItem value="Not Repairable - Delivered">Not Repairable - Delivered</SelectItem>
+                  <SelectItem value="Repair Declined - Delivered">Repair Declined - Delivered</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
-                </SelectContent>  
+                </SelectContent>
               </Select>
             </div>
 
@@ -683,80 +803,80 @@ export function SuperAdminJobSheet() {
               filterClient !== "all" ||
               filterTechnician !== "all" ||
               dateRange.from) && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-gray-600">Active Filters:</span>
-                {filterStatus !== "all" && (
-                  <Badge variant="secondary" className="rounded-full">
-                    Status: {filterStatus}
-                    <button
-                      onClick={() => {
-                        setFilterStatus("all");
-                        resetPagination();
-                      }}
-                      className="ml-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-                {filterClient !== "all" && (
-                  <Badge variant="secondary" className="rounded-full">
-                    Client: {filterClient}
-                    <button
-                      onClick={() => {
-                        setFilterClient("all");
-                        resetPagination();
-                      }}
-                      className="ml-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-                {filterTechnician !== "all" && (
-                  <Badge variant="secondary" className="rounded-full">
-                    Technician: {filterTechnician}
-                    <button
-                      onClick={() => {
-                        setFilterTechnician("all");
-                        resetPagination();
-                      }}
-                      className="ml-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-                {dateRange.from && (
-                  <Badge variant="secondary" className="rounded-full">
-                    Date Range
-                    <button
-                      onClick={() => {
-                        setDateRange({ from: undefined, to: undefined });
-                        resetPagination();
-                      }}
-                      className="ml-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setFilterStatus("all");
-                    setFilterClient("all");
-                    setFilterTechnician("all");
-                    setDateRange({ from: undefined, to: undefined });
-                    resetPagination();
-                  }}
-                  className="text-blue-600 hover:text-blue-700 h-7"
-                >
-                  Clear All
-                </Button>
-              </div>
-            )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-gray-600">Active Filters:</span>
+                  {filterStatus !== "all" && (
+                    <Badge variant="secondary" className="rounded-full">
+                      Status: {filterStatus}
+                      <button
+                        onClick={() => {
+                          setFilterStatus("all");
+                          resetPagination();
+                        }}
+                        className="ml-2"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterClient !== "all" && (
+                    <Badge variant="secondary" className="rounded-full">
+                      Client: {filterClient}
+                      <button
+                        onClick={() => {
+                          setFilterClient("all");
+                          resetPagination();
+                        }}
+                        className="ml-2"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {filterTechnician !== "all" && (
+                    <Badge variant="secondary" className="rounded-full">
+                      Technician: {filterTechnician}
+                      <button
+                        onClick={() => {
+                          setFilterTechnician("all");
+                          resetPagination();
+                        }}
+                        className="ml-2"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {dateRange.from && (
+                    <Badge variant="secondary" className="rounded-full">
+                      Date Range
+                      <button
+                        onClick={() => {
+                          setDateRange({ from: undefined, to: undefined });
+                          resetPagination();
+                        }}
+                        className="ml-2"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilterStatus("all");
+                      setFilterClient("all");
+                      setFilterTechnician("all");
+                      setDateRange({ from: undefined, to: undefined });
+                      resetPagination();
+                    }}
+                    className="text-blue-600 hover:text-blue-700 h-7"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              )}
           </div>
 
           {/* Table */}
@@ -828,9 +948,7 @@ export function SuperAdminJobSheet() {
                     <TableHead className="text-gray-700 min-w-[80px] whitespace-nowrap">
                       Tray
                     </TableHead>
-                    <TableHead className="text-gray-700 min-w-[120px] whitespace-nowrap">
-                      Estimate
-                    </TableHead>
+
                     <TableHead className="text-gray-700 text-right min-w-[150px] whitespace-nowrap">
                       Action
                     </TableHead>
@@ -886,14 +1004,14 @@ export function SuperAdminJobSheet() {
                             value={job.status}
                             onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
                           >
-                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
-                          <Badge
-                            className={`${getStatusColor(
-                              job.status
+                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
+                              <Badge
+                                className={`${getStatusColor(
+                                  job.status
                                 )} border rounded-lg px-3 py-1 cursor-pointer w-full justify-center`}
-                          >
-                            {job.status}
-                          </Badge>
+                              >
+                                {job.status}
+                              </Badge>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Pending">Pending</SelectItem>
@@ -903,14 +1021,16 @@ export function SuperAdminJobSheet() {
                               <SelectItem value="Waiting for Spares">Waiting for Spares</SelectItem>
                               <SelectItem value="Waiting for Customer Reply">Waiting for Customer Reply</SelectItem>
                               <SelectItem value="Not Repairable">Not Repairable</SelectItem>
-                              <SelectItem value="Repair Declined">Repair Declined</SelectItem>  
+                              <SelectItem value="Repair Declined">Repair Declined</SelectItem>
+                              <SelectItem value="Not Repairable - Delivered">Not Repairable - Delivered</SelectItem>
+                              <SelectItem value="Repair Declined - Delivered">Repair Declined - Delivered</SelectItem>
                               <SelectItem value="Paid">Paid</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="text-sm text-gray-700">
-                            {job.createdOn}
+                            {job.createdOn.split("T")[0]}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -924,7 +1044,7 @@ export function SuperAdminJobSheet() {
                             <SelectTrigger className="w-[150px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
                               <div className="text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-sm">
                                 {job.assignedTo?.name || "Not assigned"}
-                          </div>
+                              </div>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Not assigned</SelectItem>
@@ -938,13 +1058,6 @@ export function SuperAdminJobSheet() {
                         </TableCell>
                         <TableCell className="text-gray-700 whitespace-nowrap">
                           {job.tray.trayNumber}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div>
-                            <div className="text-gray-900">
-                              {job.estimateAmount}
-                            </div>
-                          </div>
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <Button
@@ -1035,11 +1148,10 @@ export function SuperAdminJobSheet() {
                           }
                           size="sm"
                           onClick={() => setCurrentPage(pageNumber)}
-                          className={`rounded-lg w-9 ${
-                            currentPage === pageNumber
+                          className={`rounded-lg w-9 ${currentPage === pageNumber
                               ? "bg-blue-600 hover:bg-blue-700"
                               : ""
-                          }`}
+                            }`}
                         >
                           {pageNumber}
                         </Button>
@@ -1133,8 +1245,8 @@ export function SuperAdminJobSheet() {
                       {selectedJobSheet.receivedBy.name}
                     </p>
                   </div>
-                  
-                    <div>
+
+                  <div>
                     <Label className="text-gray-600 text-xs">
                       Assigned to (Technician)
                     </Label>
@@ -1142,7 +1254,7 @@ export function SuperAdminJobSheet() {
                       {selectedJobSheet.assignedTo?.name || "N/A"}
                     </p>
                   </div>
-                  
+
                 </div>
               </div>
 
@@ -1152,7 +1264,7 @@ export function SuperAdminJobSheet() {
                   <Laptop className="w-5 h-5" />
                   <h3 className="font-semibold">Device Information</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-600 text-xs">Brand</Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
@@ -1236,7 +1348,7 @@ export function SuperAdminJobSheet() {
                   <IndianRupeeIcon className="w-5 h-5" />
                   <h3 className="font-semibold">Financial & Logistics</h3>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-gray-600 text-xs">
                       Estimate Amount
@@ -1270,48 +1382,48 @@ export function SuperAdminJobSheet() {
 
               {/* Spares */}
               {selectedJobSheet.spares &&
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 space-y-3">
-                <div className="flex items-center gap-2 text-purple-700 pb-2 border-b border-purple-200">
-                  <Layers className="w-5 h-5" />
-                  <h3 className="font-semibold">Spare Parts</h3>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-gray-600 text-xs">
-                      Product
-                    </Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.product}
-                    </p>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-purple-700 pb-2 border-b border-purple-200">
+                    <Layers className="w-5 h-5" />
+                    <h3 className="font-semibold">Spare Parts</h3>
                   </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">
-                      Amount
-                    </Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.amount || "N/A"}
-                    </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Product
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.product}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Amount
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.amount || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">Bill Number</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.billNumber || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">Sales Person</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.salesPerson.name || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">Vendor</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.vendor?.name || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Bill Number</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.billNumber || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Sales Person</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.salesPerson.name || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Vendor</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.vendor?.name || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>}
+                </div>}
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-8 pt-4 border-t">
@@ -1379,6 +1491,93 @@ export function SuperAdminJobSheet() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Update Dialog */}
+      <Dialog open={statusUpdateDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
+          setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
+        }
+      }}>
+        <DialogContent className="max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">
+              {statusUpdateDialog.newStatus === "Paid" 
+                ? "Enter Payment Information"
+                : `Update Status to ${statusUpdateDialog.newStatus}`}
+            </DialogTitle>
+            <DialogDescription>
+              {statusUpdateDialog.newStatus === "Paid"
+                ? "Enter the amount paid for this job sheet"
+                : "Enter total amount and fix summary for this job sheet"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 gap-4 py-4">
+            {statusUpdateDialog.newStatus === "Paid" ? (
+              <div className="space-y-2">
+                <Label htmlFor="amountPaid" className="text-gray-700">Amount Paid (₹) *</Label>
+                <Input
+                  id="amountPaid"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter amount paid"
+                  value={statusFormData.amountPaid}
+                  onChange={(e) => setStatusFormData({ ...statusFormData, amountPaid: e.target.value })}
+                  className="rounded-xl border-gray-200"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="totalAmount" className="text-gray-700">Total Amount (₹) *</Label>
+                  <Input
+                    id="totalAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter total amount"
+                    value={statusFormData.totalAmount}
+                    onChange={(e) => setStatusFormData({ ...statusFormData, totalAmount: e.target.value })}
+                    className="rounded-xl border-gray-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fixSummary" className="text-gray-700">Fix Summary</Label>
+                  <Textarea
+                    id="fixSummary"
+                    placeholder="Enter fix summary (optional)"
+                    rows={4}
+                    value={statusFormData.fixSummary}
+                    onChange={(e) => setStatusFormData({ ...statusFormData, fixSummary: e.target.value })}
+                    className="rounded-xl border-gray-200 resize-none"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
+                setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
+              }}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStatusDialogSubmit}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl"
+            >
+              Update Status
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

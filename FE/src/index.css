@@ -2034,6 +2034,10 @@
     background-color: var(--color-purple-500);
   }
 
+  .bg-purple-600 {
+    background-color: var(--color-purple-600);
+  }
+
   .bg-red-100 {
     background-color: var(--color-red-100);
   }
@@ -5200,11 +5204,10 @@
     height: calc(var(--spacing) * 3);
   }
 
-  .\[\&\>tr\]\:last\:border-b-0 > tr:last-child {
-    border-bottom-style: var(--tw-border-style);
-    border-bottom-width: 0;
+  .\[\&\>svg\]\:hidden > svg {
+    display: none;
   }
-
+    
   @media (hover: hover) {
     a.\[a\&\]\:hover\:bg-accent:hover {
       background-color: var(--accent);

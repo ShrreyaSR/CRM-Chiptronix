@@ -55,7 +55,7 @@ export function ClientBilling() {
 
   const fetchJobSheets = async () => {
     if (!selectedClientId) return;
-    
+
     setLoading(true);
     try {
       let fromDate = "";
@@ -64,7 +64,7 @@ export function ClientBilling() {
       // Calculate date range based on filter type
       if (dateFilterType !== 'all') {
         const today = new Date();
-        
+
         switch (dateFilterType) {
           case 'today':
             fromDate = format(today, 'yyyy-MM-dd');
@@ -118,40 +118,62 @@ export function ClientBilling() {
     return `₹${amount.toLocaleString('en-IN')}`;
   };
 
-  // Filter job sheets by status (only Delivered, Not Repairable, and Repair Declined)
+  // Helper functions for status checking
+  const isDeliveredStatus = (status: string): boolean => {
+    return status === 'Delivered' || status === 'Not Repairable - Delivered' || status === 'Repair Declined - Delivered';
+  };
+
+  const isNotRepairableStatus = (status: string): boolean => {
+    return status === 'Not Repairable' || status === 'Not Repairable - Delivered';
+  };
+
+  const isRepairDeclinedStatus = (status: string): boolean => {
+    return status === 'Repair Declined' || status === 'Repair Declined - Delivered';
+  };
+
+  // Filter job sheets by status (All delivered types, Not Repairable variants, Repair Declined variants, and Paid)
   const deliveredJobSheets = useMemo(() => {
     return jobSheets.filter(
-      js => js.status === 'Delivered' || js.status === 'Not Repairable' || js.status === 'Repair Declined'
+      js => isDeliveredStatus(js.status) || isNotRepairableStatus(js.status) || isRepairDeclinedStatus(js.status) || js.status === 'Paid'
     );
   }, [jobSheets]);
 
   // Calculate amounts by category
   const categoryAmounts = useMemo(() => {
+    // Delivered = only normal "Delivered" status (fully completed)
     const delivered = jobSheets.filter(js => js.status === 'Delivered');
-    const notRepairable = jobSheets.filter(js => js.status === 'Not Repairable');
-    const repairDeclined = jobSheets.filter(js => js.status === 'Repair Declined');
+    // Not Repairable = both "Not Repairable" and "Not Repairable - Delivered"
+    const notRepairable = jobSheets.filter(js => isNotRepairableStatus(js.status));
+    // Repair Declined = both "Repair Declined" and "Repair Declined - Delivered"
+    const repairDeclined = jobSheets.filter(js => isRepairDeclinedStatus(js.status));
+    const paid = jobSheets.filter(js => js.status === 'Paid');
 
     return {
       delivered: {
         count: delivered.length,
-        total: delivered.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        total: delivered.reduce((sum, js) => sum + (Number(js.totalAmount) || Number(js.estimateAmount) || 0), 0),
         paid: delivered.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
       notRepairable: {
         count: notRepairable.length,
-        total: notRepairable.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        total: notRepairable.reduce((sum, js) => sum + (Number(js.totalAmount) || Number(js.estimateAmount) || 0), 0),
         paid: notRepairable.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
       repairDeclined: {
         count: repairDeclined.length,
-        total: repairDeclined.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0),
+        total: repairDeclined.reduce((sum, js) => sum + (Number(js.totalAmount) || Number(js.estimateAmount) || 0), 0),
         paid: repairDeclined.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
+      },
+      paid: {
+        count: paid.length,
+        total: paid.reduce((sum, js) => sum + (Number(js.totalAmount) || Number(js.estimateAmount) || 0), 0),
+        paid: paid.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0),
       },
     };
   }, [jobSheets]);
 
-  // Calculate total amounts
-  const totalAmount = deliveredJobSheets.reduce((sum, js) => sum + (Number(js.estimateAmount) || 0), 0);
+  // Calculate total amounts (using totalAmount if available, otherwise estimateAmount)
+  const totalAmount = deliveredJobSheets.reduce((sum, js) => sum + (Number(js.totalAmount) || Number(js.estimateAmount) || 0), 0);
   const totalPaid = deliveredJobSheets.reduce((sum, js) => sum + (Number(js.amountPaid) || 0), 0);
   const totalBalance = totalAmount - totalPaid;
 
@@ -162,20 +184,35 @@ export function ClientBilling() {
 
   // Mark selected job sheets as paid
   const handleMarkAsPaid = async () => {
-    if (deliveredJobSheets.length === 0) {
+    // Only mark non-paid job sheets as paid
+    const jobSheetsToMark = deliveredJobSheets.filter(js => js.status !== 'Paid');
+    
+    if (jobSheetsToMark.length === 0) {
       toast.error("No job sheets to mark as paid");
       return;
     }
 
     try {
-      // Update each job sheet to "Paid" status
-      const updatePromises = deliveredJobSheets.map(js =>
-        crmApi.jobSheet.update(Number(js.id), { status: "Paid" })
+      // Calculate per-job-sheet amount after discount
+      const jobSheetAmounts = jobSheetsToMark.map(js => {
+        const jobAmount = Number(js.totalAmount) || Number(js.estimateAmount) || 0;
+        // Apply discount proportionally
+        const discountMultiplier = discount > 0 ? (1 - discount / 100) : 1;
+        const finalJobAmount = jobAmount * discountMultiplier;
+        return { id: Number(js.id), amountPaid: finalJobAmount };
+      });
+
+      // Update each job sheet to "Paid" status with the calculated amountPaid
+      const updatePromises = jobSheetAmounts.map(({ id, amountPaid }) =>
+        crmApi.jobSheet.update(id, { 
+          status: "Paid",
+          amountPaid: amountPaid
+        })
       );
 
       await Promise.all(updatePromises);
-      toast.success(`${deliveredJobSheets.length} job sheet(s) marked as paid`);
-      
+      toast.success(`${jobSheetsToMark.length} job sheet(s) marked as paid`);
+
       // Refresh the job sheets list
       fetchJobSheets();
     } catch (error) {
@@ -351,131 +388,74 @@ export function ClientBilling() {
             </Card>
           ) : (
             <>
-              {/* Summary Cards */}
-              {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm opacity-90 flex items-center gap-2">
-                      <IndianRupee className="h-4 w-4" />
-                      Total Amount
-                    </CardTitle>
+
+              <div className="flex justify-between">
+
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+                  <CardHeader className="pb-2 relative z-10">
+                    <CardDescription className="text-blue-100 text-xs">Total Amount</CardDescription>
+                    <CardTitle className="text-white text-2xl">{formatAmount(totalAmount)}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl">{formatAmount(totalAmount)}</div>
+                  <CardContent className="relative z-10 pb-3">
                     {discount > 0 && (
-                      <div className="text-sm opacity-90 mt-2">
-                        After {discount}% discount: {formatAmount(finalAmount)}
+                      <div className="text-xs text-blue-100">
+                        After {discount}%: {formatAmount(finalAmount)}
+                      </div>
+                    )}
+                    {!discount && (
+                      <div className="flex items-center gap-1.5 text-blue-100">
+                        <IndianRupee className="w-3.5 h-3.5" />
+                        <span className="text-xs">Charged</span>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm opacity-90 flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Amount Paid
-                    </CardTitle>
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-green-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+                  <CardHeader className="pb-2 relative z-10">
+                    <CardDescription className="text-emerald-100 text-xs">Amount Paid</CardDescription>
+                    <CardTitle className="text-white text-2xl">{formatAmount(totalPaid)}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl">{formatAmount(totalPaid)}</div>
+                  <CardContent className="relative z-10 pb-3">
+                    <div className="flex items-center gap-1.5 text-emerald-100">
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span className="text-xs">Received</span>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl shadow-lg">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm opacity-90 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      Balance Due
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl">
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+                  <CardHeader className="pb-2 relative z-10">
+                    <CardDescription className="text-amber-100 text-xs">Balance Due</CardDescription>
+                    <CardTitle className="text-white text-2xl">
                       {discount > 0 ? formatAmount(finalBalance) : formatAmount(totalBalance)}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm opacity-90 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Total Jobs
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl">{deliveredJobSheets.length}</div>
+                  <CardContent className="relative z-10 pb-3">
+                    <div className="flex items-center gap-1.5 text-amber-100">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span className="text-xs">Pending</span>
+                    </div>
                   </CardContent>
                 </Card>
-              </div> */}
 
-              <div className="flex justify-between">
-
-<Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <CardDescription className="text-blue-100 text-xs">Total Amount</CardDescription>
-                  <CardTitle className="text-white text-2xl">{formatAmount(totalAmount)}</CardTitle>
-                </CardHeader>
-                <CardContent className="relative z-10 pb-3">
-                  {discount > 0 && (
-                    <div className="text-xs text-blue-100">
-                      After {discount}%: {formatAmount(finalAmount)}
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+                  <CardHeader className="pb-2 relative z-10">
+                    <CardDescription className="text-purple-100 text-xs">Total Jobs</CardDescription>
+                    <CardTitle className="text-white text-2xl">{deliveredJobSheets.length}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative z-10 pb-3">
+                    <div className="flex items-center gap-1.5 text-purple-100">
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span className="text-xs">Job Sheets</span>
                     </div>
-                  )}
-                  {!discount && (
-                    <div className="flex items-center gap-1.5 text-blue-100">
-                      <IndianRupee className="w-3.5 h-3.5" />
-                      <span className="text-xs">Charged</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-green-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <CardDescription className="text-emerald-100 text-xs">Amount Paid</CardDescription>
-                  <CardTitle className="text-white text-2xl">{formatAmount(totalPaid)}</CardTitle>
-                </CardHeader>
-                <CardContent className="relative z-10 pb-3">
-                  <div className="flex items-center gap-1.5 text-emerald-100">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span className="text-xs">Received</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <CardDescription className="text-amber-100 text-xs">Balance Due</CardDescription>
-                  <CardTitle className="text-white text-2xl">
-                    {discount > 0 ? formatAmount(finalBalance) : formatAmount(totalBalance)}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="relative z-10 pb-3">
-                  <div className="flex items-center gap-1.5 text-amber-100">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span className="text-xs">Pending</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[300px] flex-shrink-0">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <CardDescription className="text-purple-100 text-xs">Total Jobs</CardDescription>
-                  <CardTitle className="text-white text-2xl">{deliveredJobSheets.length}</CardTitle>
-                </CardHeader>
-                <CardContent className="relative z-10 pb-3">
-                  <div className="flex items-center gap-1.5 text-purple-100">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    <span className="text-xs">Job Sheets</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
 
 
               {/* Category-wise Amount Breakdown */}
@@ -485,7 +465,7 @@ export function ClientBilling() {
                   <CardDescription>Amount breakdown by job status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Delivered */}
                     <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
                       <div className="flex items-center gap-2 mb-2">
@@ -551,6 +531,28 @@ export function ClientBilling() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Paid */}
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className="bg-purple-500 text-white">Paid</Badge>
+                        <span className="text-sm text-gray-600">({categoryAmounts.paid.count} jobs)</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Total:</span>
+                          <span className="text-gray-900">{formatAmount(categoryAmounts.paid.total)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Paid:</span>
+                          <span className="text-green-700">{formatAmount(categoryAmounts.paid.paid)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Balance:</span>
+                          <span className="text-orange-700">{formatAmount(categoryAmounts.paid.total - categoryAmounts.paid.paid)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -565,7 +567,7 @@ export function ClientBilling() {
                         Showing {deliveredJobSheets.length} job sheet(s) for {selectedClient?.name}
                       </CardDescription>
                     </div>
-                    {deliveredJobSheets.length > 0 && (
+                    {deliveredJobSheets.filter(js => js.status !== 'Paid').length > 0 && (
                       <Button
                         onClick={handleMarkAsPaid}
                         className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl shadow-lg"
@@ -593,16 +595,16 @@ export function ClientBilling() {
                             <TableHead className="text-gray-900">Brand</TableHead>
                             <TableHead className="text-gray-900">Model</TableHead>
                             <TableHead className="text-gray-900">Status</TableHead>
-                            <TableHead className="text-right text-gray-900">Estimate</TableHead>
+                            <TableHead className="text-right text-gray-900">Total Amount</TableHead>
                             <TableHead className="text-right text-gray-900">Paid</TableHead>
                             <TableHead className="text-right text-gray-900">Balance</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {deliveredJobSheets.map((jobSheet) => {
-                            const estimate = Number(jobSheet.estimateAmount) || 0;
+                            const total = Number(jobSheet.totalAmount) || Number(jobSheet.estimateAmount) || 0;
                             const paid = Number(jobSheet.amountPaid) || 0;
-                            const balance = estimate - paid;
+                            const balance = total - paid;
 
                             return (
                               <TableRow key={jobSheet.id} className="hover:bg-blue-50/50 transition-colors">
@@ -621,16 +623,17 @@ export function ClientBilling() {
                                   <Badge
                                     className={cn(
                                       "text-white",
-                                      jobSheet.status === "Delivered" && "bg-green-600",
-                                      jobSheet.status === "Not Repairable" && "bg-red-600",
-                                      jobSheet.status === "Repair Declined" && "bg-amber-600"
+                                    jobSheet.status === "Delivered" && "bg-green-600",
+                                    isNotRepairableStatus(jobSheet.status) && "bg-red-600",
+                                    isRepairDeclinedStatus(jobSheet.status) && "bg-amber-600",
+                                    jobSheet.status === "Paid" && "bg-purple-500"
                                     )}
                                   >
                                     {jobSheet.status}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right text-gray-900">
-                                  {formatAmount(estimate)}
+                                  {formatAmount(total)}
                                 </TableCell>
                                 <TableCell className="text-right text-green-700">
                                   {formatAmount(paid)}

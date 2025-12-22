@@ -338,8 +338,9 @@ function SalesPersonForm({
         <Label>DOB</Label>
         <Input
           type="date"
-          value={formData.dob}
+          value={formData.dob || null}
           onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+          max={new Date().toISOString().split("T")[0]}
         />
       </div>
 
@@ -347,8 +348,9 @@ function SalesPersonForm({
         <Label>DOJ</Label>
         <Input
           type="date"
-          value={formData.doj}
+          value={formData.doj || null}
           onChange={(e) => setFormData({ ...formData, doj: e.target.value })}
+          max={new Date().toISOString().split("T")[0]}
         />
       </div>
 

@@ -7,7 +7,7 @@ import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
-import { Plus, User, Laptop, DollarSign, FileText, Upload, X, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, User, Laptop, DollarSign, FileText, Upload, X, ArrowLeft, Loader2, CheckCircle2, Search } from "lucide-react";
 import { ScrollArea } from "../../ui/scroll-area";
 import { crmApi } from "../../../api";
 import { ClientDto, TechnicianDto, BrandDto, ComplaintDto, TrayDto, JobSheetDto, SalesPersonDto, VendorDto } from "../../../dtos";
@@ -20,7 +20,7 @@ interface AddJobSheetProps {
 
 export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) {
   const isEditMode = !!jobSheetId;
-  
+
   // Debug log
   useEffect(() => {
     console.log("AddJobSheet mounted/updated - isEditMode:", isEditMode, "jobSheetId:", jobSheetId);
@@ -44,7 +44,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     amountPaid: "",
     totalAmount: "",
     picture: "",
-    status: "Pending" as "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Paid",
+    status: "Pending" as "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Not Repairable - Delivered" | "Repair Declined - Delivered" | "Paid",
     fixSummary: "",
     // Spares fields (only for edit mode)
     spareProduct: "",
@@ -69,6 +69,15 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   const [loading, setLoading] = useState(false);
   const [salesPersons, setSalesPersons] = useState<SalesPersonDto[]>([]);
   const [vendors, setVendors] = useState<VendorDto[]>([]);
+
+  // Search states for dropdowns
+  const [clientSearch, setClientSearch] = useState<string>("");
+  const [brandSearch, setBrandSearch] = useState<string>("");
+  const [modelSearch, setModelSearch] = useState<string>("");
+  const [complaintSearch, setComplaintSearch] = useState<string>("");
+  const [traySearch, setTraySearch] = useState<string>("");
+  const [receivedBySearch, setReceivedBySearch] = useState<string>("");
+  const [assignedToSearch, setAssignedToSearch] = useState<string>("");
 
   // Dialog states
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
@@ -170,7 +179,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     try {
       const response = await crmApi.jobSheet.getById(parseInt(jobSheetId));
       const jobSheet: JobSheetDto = response.data.data!;
-      
+
       console.log("Loading job sheet data:", jobSheet);
       console.log("Form data before setting:", {
         clientId: jobSheet.client?.id.toString(),
@@ -179,7 +188,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         brandId: jobSheet.brand?.id.toString(),
         color: jobSheet.color,
       });
-      
+
       setFormData({
         clientId: jobSheet.client?.id.toString() || "",
         serviceType: jobSheet.serviceType || "",
@@ -207,11 +216,11 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         spareSalesPersonId: jobSheet.spares?.salesPerson?.id.toString() || "",
         spareVendorId: jobSheet.spares?.vendor?.id.toString() || "",
       });
-      
+
       if (jobSheet.picture) {
         setUploadedFileName(jobSheet.picture);
       }
-      
+
       // Set selected model ID and populate available models using the fetched brands data
       if (jobSheet.brand?.id && brandsData.length > 0) {
         const brandId = jobSheet.brand.id.toString();
@@ -234,7 +243,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       } else {
         console.log("⚠️ Brand setup failed - brandId:", jobSheet.brand?.id, "brandsData length:", brandsData.length);
       }
-      
+
       console.log("✅ Form data set:", {
         clientId: jobSheet.client?.id.toString(),
         brandId: jobSheet.brand?.id.toString(),
@@ -255,9 +264,46 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   const uniqueBrands = Array.from(new Set(brands.map(b => b.brand))).sort();
 
   // Get free trays only (for add mode), or all trays (for edit mode)
-  const availableTraysForSelection = isEditMode 
+  const availableTraysForSelection = isEditMode
     ? trays // In edit mode, show all trays so current tray can be selected
     : trays.filter(t => t.status === "Free"); // In add mode, only show free trays
+
+  // Filtered arrays for search functionality
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.phone?.toLowerCase().includes(clientSearch.toLowerCase())
+  );
+
+  const filteredBrands = uniqueBrands.filter(brand =>
+    brand.toLowerCase().includes(brandSearch.toLowerCase())
+  );
+
+  const filteredModels = availableModels.filter(model =>
+    model.model.toLowerCase().includes(modelSearch.toLowerCase()) ||
+    model.brand.toLowerCase().includes(modelSearch.toLowerCase())
+  );
+
+  const filteredComplaints = complaints.filter(complaint =>
+    complaint.description.toLowerCase().includes(complaintSearch.toLowerCase())
+  );
+
+  const filteredTrays = availableTraysForSelection.filter(tray =>
+    tray.trayNumber?.toString().includes(traySearch) ||
+    tray.status?.toLowerCase().includes(traySearch.toLowerCase())
+  );
+
+  const filteredTechnicians = technicians.filter(tech =>
+    tech.name.toLowerCase().includes(receivedBySearch.toLowerCase()) ||
+    tech.email?.toLowerCase().includes(receivedBySearch.toLowerCase()) ||
+    tech.phone?.toLowerCase().includes(receivedBySearch.toLowerCase())
+  );
+
+  const filteredAssignedTechnicians = technicians.filter(tech =>
+    tech.name.toLowerCase().includes(assignedToSearch.toLowerCase()) ||
+    tech.email?.toLowerCase().includes(assignedToSearch.toLowerCase()) ||
+    tech.phone?.toLowerCase().includes(assignedToSearch.toLowerCase())
+  );
 
   // Sync selectedBrandName with formData.brandId when brands are loaded (for edit mode)
   useEffect(() => {
@@ -279,7 +325,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     if (selectedBrandName && brands.length > 0) {
       const models = brands.filter(b => b.brand === selectedBrandName);
       setAvailableModels(models);
-      
+
       // Only generate serial number in add mode (not edit mode) and if serial number is empty
       if (!isEditMode && !formData.serialNumber) {
         const serialNumber = generateSerialNumber(selectedBrandName);
@@ -321,11 +367,23 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   };
 
   // Validation functions for add dialogs
-  const canAddClient = clientFormData.name.trim() !== "" && clientFormData.phone.trim() !== "" && clientFormData.address.trim() !== "" && (!clientFormData.clientType || clientFormData.clientType === "Customer" || (clientFormData.clientType === "Dealer" && clientFormData.passwordIfDealer.trim() !== ""));
+  const isEmailValid = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isPhoneValid = (phone: string) => phone.trim().length === 10 && /^\d+$/.test(phone);
+  
+  const canAddClient = 
+    clientFormData.name.trim() !== "" && 
+    isPhoneValid(clientFormData.phone) && 
+    clientFormData.address.trim() !== "" && 
+    isEmailValid(clientFormData.email) &&
+    (!clientFormData.clientType || clientFormData.clientType === "Customer" || (clientFormData.clientType === "Dealer" && clientFormData.passwordIfDealer.trim() !== ""));
   const canAddBrand = brandFormData.brand.trim() !== "" && brandFormData.model.trim() !== "";
   const canAddComplaint = complaintFormData.description.trim() !== "";
   const canAddTray = trayFormData.numberOfTrays > 0 && trayFormData.numberOfTrays <= 200;
-  const canAddTechnician = technicianFormData.name.trim() !== "" && technicianFormData.password.trim() !== "" && technicianFormData.phone.trim() !== "";
+  const canAddTechnician = 
+    technicianFormData.name.trim() !== "" && 
+    technicianFormData.password.trim() !== "" && 
+    isPhoneValid(technicianFormData.phone) &&
+    isEmailValid(technicianFormData.email);
 
   // Validation for main job sheet form
   const canSaveJobSheet = formData.clientId && formData.serviceType && formData.deviceType && formData.brandId && formData.complaintId && formData.trayId && formData.receivedById && formData.serialNumber.trim() !== "";
@@ -391,10 +449,20 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         jobSheetData.spares = null;
       }
 
+      // Helper function to check if status is a delivered type (any kind of delivered)
+      const isDeliveredStatus = (status: string | undefined): boolean => {
+        if (!status) return false;
+        return status === "Delivered" || status === "Not Repairable - Delivered" || status === "Repair Declined - Delivered";
+      };
+
       // Update tray status when creating new job sheet
       if (!isEditMode) {
-        // Set tray to Occupied when creating new job sheet
+        // Set tray to Occupied when creating new job sheet (even if status is delivered, tray is occupied initially)
         await crmApi.tray.update(parseInt(formData.trayId), { status: "Occupied" });
+        // If status is already a delivered type, then immediately free the tray
+        if (isDeliveredStatus(formData.status) || formData.status === "Completed") {
+          await crmApi.tray.update(parseInt(formData.trayId), { status: "Free" });
+        }
       } else if (isEditMode && jobSheetId) {
         // Handle tray status updates in edit mode
         const currentTrayId = parseInt(formData.trayId);
@@ -403,19 +471,27 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         // If tray changed, free the old tray and occupy the new one
         if (previousTrayId && previousTrayId !== currentTrayId) {
           await crmApi.tray.update(previousTrayId, { status: "Free" });
-          await crmApi.tray.update(currentTrayId, { status: "Occupied" });
-        }
+          // Only occupy new tray if status is not delivered/completed
+          if (newStatus !== "Completed" && !isDeliveredStatus(newStatus)) {
+            await crmApi.tray.update(currentTrayId, { status: "Occupied" });
+          } else {
+            await crmApi.tray.update(currentTrayId, { status: "Free" });
+          }
+        } else {
+          // Same tray, check status change
+          const wasDeliveredStatus = isDeliveredStatus(previousStatus);
+          const isNowDeliveredStatus = isDeliveredStatus(newStatus);
 
-        // If status changed to Completed or Delivered, free the tray
-        if ((previousStatus !== "Completed" && newStatus === "Completed") || 
-            (previousStatus !== "Delivered" && newStatus === "Delivered")) {
-          await crmApi.tray.update(currentTrayId, { status: "Free" });
-        }
-        // If status changed from Completed or Delivered to something else, occupy the tray (unless it's already occupied by another job)
-        else if ((previousStatus === "Completed" || previousStatus === "Delivered") && 
-                 newStatus !== "Completed" && newStatus !== "Delivered" && 
-                 previousTrayId === currentTrayId) {
-          await crmApi.tray.update(currentTrayId, { status: "Occupied" });
+          // If status changed to Completed or any Delivered status, free the tray
+          if ((previousStatus !== "Completed" && newStatus === "Completed") ||
+            (!wasDeliveredStatus && isNowDeliveredStatus)) {
+            await crmApi.tray.update(currentTrayId, { status: "Free" });
+          }
+          // If status changed from Completed or any Delivered status to something else, occupy the tray
+          else if ((previousStatus === "Completed" || wasDeliveredStatus) &&
+            newStatus !== "Completed" && !isNowDeliveredStatus) {
+            await crmApi.tray.update(currentTrayId, { status: "Occupied" });
+          }
         }
       }
 
@@ -518,7 +594,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       console.error(error);
     }
   };
-    
+
   // Handle add technician
   const handleAddTechnician = async () => {
     if (!technicianFormData.name || !technicianFormData.password || !technicianFormData.phone) {
@@ -597,16 +673,35 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                           <SelectValue placeholder="Select client" />
                         </SelectTrigger>
                         <SelectContent>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id.toString()}>
-                              {client.name}
-                            </SelectItem>
-                          ))}
+                          <div className="p-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search client..."
+                                value={clientSearch}
+                                onChange={(e) => setClientSearch(e.target.value)}
+                                className="pl-8 h-8 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {filteredClients.length > 0 ? (
+                              filteredClients.map((client) => (
+                                <SelectItem key={client.id} value={client.id.toString()}>
+                                  {client.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-6 text-sm text-center text-gray-500">No clients found</div>
+                            )}
+                          </div>
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
+                      <Button
+                        variant="outline"
+                        size="icon"
                         className="rounded-xl"
                         onClick={() => setIsClientDialogOpen(true)}
                       >
@@ -674,23 +769,42 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                   <div className="space-y-2">
                     <Label htmlFor="brand" className="text-gray-700">Brand *</Label>
                     <div className="flex gap-2">
-                    <Select
+                      <Select
                         value={selectedBrandName}
                         onValueChange={(brandName) => {
                           setSelectedBrandName(brandName);
                         }}
-                    >
+                      >
                         <SelectTrigger id="brand" className="rounded-xl border-gray-200 flex-1">
-                        <SelectValue placeholder="Select brand" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {uniqueBrands.map((brandName) => (
-                            <SelectItem key={brandName} value={brandName}>
-                              {brandName}
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                          <SelectValue placeholder="Select brand" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search brand..."
+                                value={brandSearch}
+                                onChange={(e) => setBrandSearch(e.target.value)}
+                                className="pl-8 h-8 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {filteredBrands.length > 0 ? (
+                              filteredBrands.map((brandName) => (
+                                <SelectItem key={brandName} value={brandName}>
+                                  {brandName}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-6 text-sm text-center text-gray-500">No brands found</div>
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="outline"
                         size="icon"
@@ -715,11 +829,30 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                         <SelectValue placeholder={formData.brandId ? "Select model" : "Select brand first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id.toString()}>
-                            {model.model}
-                          </SelectItem>
-                        ))}
+                        <div className="p-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="Search model..."
+                              value={modelSearch}
+                              onChange={(e) => setModelSearch(e.target.value)}
+                              className="pl-8 h-8 text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {filteredModels.length > 0 ? (
+                            filteredModels.map((model) => (
+                              <SelectItem key={model.id} value={model.id.toString()}>
+                                {model.model}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-6 text-sm text-center text-gray-500">No models found</div>
+                          )}
+                        </div>
                       </SelectContent>
                     </Select>
                   </div>
@@ -770,21 +903,40 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 <div className="space-y-2">
                   <Label htmlFor="complaints" className="text-gray-700">Complaints *</Label>
                   <div className="flex gap-2">
-                  <Select
+                    <Select
                       value={formData.complaintId}
                       onValueChange={(value) => setFormData({ ...formData, complaintId: value })}
-                  >
+                    >
                       <SelectTrigger id="complaints" className="rounded-xl border-gray-200 flex-1">
-                      <SelectValue placeholder="Select complaint" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {complaints.map((complaint) => (
-                          <SelectItem key={complaint.id} value={complaint.id.toString()}>
-                            {complaint.description}
-                          </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <SelectValue placeholder="Select complaint" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="Search complaint..."
+                              value={complaintSearch}
+                              onChange={(e) => setComplaintSearch(e.target.value)}
+                              className="pl-8 h-8 text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {filteredComplaints.length > 0 ? (
+                            filteredComplaints.map((complaint) => (
+                              <SelectItem key={complaint.id} value={complaint.id.toString()}>
+                                {complaint.description}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-6 text-sm text-center text-gray-500">No complaints found</div>
+                          )}
+                        </div>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
                       size="icon"
@@ -818,26 +970,41 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                   <div className="space-y-2">
                     <Label htmlFor="trayNumber" className="text-gray-700">Tray Number *</Label>
                     <div className="flex gap-2">
-                    <Select
+                      <Select
                         value={formData.trayId}
                         onValueChange={(value) => setFormData({ ...formData, trayId: value })}
-                    >
+                      >
                         <SelectTrigger id="trayNumber" className="rounded-xl border-gray-200 flex-1">
-                        <SelectValue placeholder="Select available tray" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {availableTraysForSelection.length > 0 ? (
-                            availableTraysForSelection.map((tray) => (
-                              <SelectItem key={tray.id} value={tray.id.toString()}>
-                                {tray.trayNumber} {tray.status === "Free" && <span className="text-green-600">(Free)</span>}
-                                {tray.status === "Occupied" && <span className="text-gray-500">(Occupied)</span>}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-trays" disabled>No trays available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                          <SelectValue placeholder="Select available tray" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search tray..."
+                                value={traySearch}
+                                onChange={(e) => setTraySearch(e.target.value)}
+                                className="pl-8 h-8 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {filteredTrays.length > 0 ? (
+                              filteredTrays.map((tray) => (
+                                <SelectItem key={tray.id} value={tray.id.toString()}>
+                                  {tray.trayNumber} {tray.status === "Free" && <span className="text-green-600">(Free)</span>}
+                                  {tray.status === "Occupied" && <span className="text-gray-500">(Occupied)</span>}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-6 text-sm text-center text-gray-500">No trays found</div>
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="outline"
                         size="icon"
@@ -848,9 +1015,9 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                       </Button>
                     </div>
                     {!isEditMode && (
-                    <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500">
                         {trays.filter(t => t.status === "Free").length} of {trays.length} trays available
-                    </p>
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -864,11 +1031,30 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                           <SelectValue placeholder="Select technician" />
                         </SelectTrigger>
                         <SelectContent>
-                          {technicians.map((tech) => (
-                            <SelectItem key={tech.id} value={tech.id.toString()}>
-                              {tech.name}
-                            </SelectItem>
-                          ))}
+                          <div className="p-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search technician..."
+                                value={receivedBySearch}
+                                onChange={(e) => setReceivedBySearch(e.target.value)}
+                                className="pl-8 h-8 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {filteredTechnicians.length > 0 ? (
+                              filteredTechnicians.map((tech) => (
+                                <SelectItem key={tech.id} value={tech.id.toString()}>
+                                  {tech.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-6 text-sm text-center text-gray-500">No technicians found</div>
+                            )}
+                          </div>
                         </SelectContent>
                       </Select>
                       <Button
@@ -879,32 +1065,51 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
-                  </div>
+                    </div>
                   </div>
                 </div>
                 {/* Assigned To - Only in Edit Mode */}
                 {isEditMode && (
                   <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="assignedTo" className="text-gray-700">Assigned To</Label>
-                    <Select
+                      <Select
                         value={formData.assignedToId}
                         onValueChange={(value) => setFormData({ ...formData, assignedToId: value })}
-                    >
+                      >
                         <SelectTrigger id="assignedTo" className="rounded-xl border-gray-200">
                           <SelectValue placeholder="Select technician (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                        {technicians.map((tech) => (
-                            <SelectItem key={tech.id} value={tech.id.toString()}>
-                              {tech.name}
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                placeholder="Search technician..."
+                                value={assignedToSearch}
+                                onChange={(e) => setAssignedToSearch(e.target.value)}
+                                className="pl-8 h-8 text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            <SelectItem value="none">None</SelectItem>
+                            {filteredAssignedTechnicians.length > 0 ? (
+                              filteredAssignedTechnicians.map((tech) => (
+                                <SelectItem key={tech.id} value={tech.id.toString()}>
+                                  {tech.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-6 text-sm text-center text-gray-500">No technicians found</div>
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
 
@@ -926,6 +1131,20 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                       className="rounded-xl border-gray-200"
                     />
                   </div>
+                  {/* Total Amount - Only in Edit Mode and when status is Completed, any Delivered status, Paid, Repair Declined variants, or Not Repairable variants */}
+                  {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Repair Declined - Delivered" || formData.status === "Not Repairable" || formData.status === "Not Repairable - Delivered") && (
+                    <div className="space-y-2">
+                      <Label htmlFor="totalAmount" className="text-gray-700">Total Amount (₹)</Label>
+                      <Input
+                        id="totalAmount"
+                        type="number"
+                        placeholder="5000"
+                        value={formData.totalAmount}
+                        onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                        className="rounded-xl border-gray-200"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="amountPaid" className="text-gray-700">Amount Paid (₹)</Label>
                     <Input
@@ -937,26 +1156,12 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                       className="rounded-xl border-gray-200"
                     />
                   </div>
-                  {/* Total Amount - Only in Edit Mode and when status is Completed, Delivered, Paid, Repair Declined, or Not Repairable */}
-                  {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Not Repairable") && (
-                  <div className="space-y-2">
-                      <Label htmlFor="totalAmount" className="text-gray-700">Total Amount (₹)</Label>
-                    <Input
-                        id="totalAmount"
-                      type="number"
-                        placeholder="5000"
-                        value={formData.totalAmount}
-                        onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
-                      className="rounded-xl border-gray-200"
-                    />
-                  </div>
-                  )}
                 </div>
               </div>
 
-              {/* Fix Summary - Only in Edit Mode and when status is Completed, Delivered, Paid, Repair Declined, or Not Repairable */}
-              {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Not Repairable") && (
-              <div className="space-y-4">
+              {/* Fix Summary - Only in Edit Mode and when status is Completed, any Delivered status, Paid, Repair Declined variants, or Not Repairable variants */}
+              {isEditMode && (formData.status === "Completed" || formData.status === "Delivered" || formData.status === "Paid" || formData.status === "Repair Declined" || formData.status === "Repair Declined - Delivered" || formData.status === "Not Repairable" || formData.status === "Not Repairable - Delivered") && (
+                <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
                     <FileText className="w-4 h-4 text-blue-600" />
                     <h3 className="text-gray-800">Fix Summary</h3>
@@ -1015,16 +1220,16 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                     <h3 className="text-gray-800">Spares Information (Optional)</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="spareProduct" className="text-gray-700">Product</Label>
-                    <Input
+                      <Input
                         id="spareProduct"
                         placeholder="Product name"
                         value={formData.spareProduct}
                         onChange={(e) => setFormData({ ...formData, spareProduct: e.target.value })}
-                      className="rounded-xl border-gray-200"
-                    />
-                  </div>
+                        className="rounded-xl border-gray-200"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="spareStatus" className="text-gray-700">Status</Label>
                       <Select
@@ -1042,8 +1247,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                           <SelectItem value="Delivered to Technician">Delivered to Technician</SelectItem>
                         </SelectContent>
                       </Select>
-                </div>
-              </div>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="spareDescription" className="text-gray-700">Description</Label>
                     <Textarea
@@ -1122,41 +1327,41 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
               {/* Picture */}
               <div className="space-y-4">
                 <div className="grid gap-4 grid-cols-1">
-              <div className="space-y-2">
-                <Label htmlFor="picture" className="text-gray-700">Device Picture</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    id="picture"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('picture')?.click()}
-                    className="rounded-xl border-gray-200"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Picture
-                  </Button>
-                  {uploadedFileName && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span>{uploadedFileName}</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="picture" className="text-gray-700">Device Picture</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        id="picture"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => {
-                          setUploadedFileName("");
-                          setFormData({ ...formData, picture: "" });
-                        }}
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('picture')?.click()}
+                        className="rounded-xl border-gray-200"
                       >
-                        <X className="w-4 h-4" />
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Picture
                       </Button>
-                    </div>
-                  )}
+                      {uploadedFileName && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span>{uploadedFileName}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              setUploadedFileName("");
+                              setFormData({ ...formData, picture: "" });
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1175,13 +1380,14 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="client-name">Client Name *</Label>
+              <Label htmlFor="client-name">Client Name <span className="text-red-500">*</span></Label>
               <Input
                 id="client-name"
                 placeholder="Enter client name"
                 value={clientFormData.name}
                 onChange={(e) => setClientFormData({ ...clientFormData, name: e.target.value })}
                 className="rounded-lg"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -1194,21 +1400,35 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 onChange={(e) => setClientFormData({ ...clientFormData, email: e.target.value })}
                 className="rounded-lg"
               />
+              {clientFormData.email && !isEmailValid(clientFormData.email) && (
+                <p className="text-xs text-red-500">Please enter a valid email address</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="client-phone">Phone Number *</Label>
+              <Label htmlFor="client-phone">Phone Number <span className="text-red-500">*</span></Label>
               <Input
                 id="client-phone"
-                placeholder="Enter phone number"
+                type="tel"
+                placeholder="10-digit phone number"
                 value={clientFormData.phone}
-                onChange={(e) => setClientFormData({ ...clientFormData, phone: e.target.value })}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "");
+                  if (digitsOnly.length <= 10) {
+                    setClientFormData({ ...clientFormData, phone: digitsOnly });
+                  }
+                }}
+                maxLength={10}
                 className="rounded-lg"
+                required
               />
+              {clientFormData.phone && clientFormData.phone.length !== 10 && (
+                <p className="text-xs text-red-500">Phone number must be 10 digits</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="client-type">Client Type *</Label>
-              <Select 
-                value={clientFormData.clientType} 
+              <Label htmlFor="client-type">Client Type <span className="text-red-500">*</span></Label>
+              <Select
+                value={clientFormData.clientType}
                 onValueChange={(value: "Customer" | "Dealer") => setClientFormData({ ...clientFormData, clientType: value })}
               >
                 <SelectTrigger id="client-type" className="rounded-lg">
@@ -1222,7 +1442,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
             </div>
             {clientFormData.clientType === "Dealer" && (
               <div className="space-y-2">
-                <Label htmlFor="client-password">Dealer Password</Label>
+                <Label htmlFor="client-password">Dealer Password <span className="text-red-500">*</span></Label>
                 <Input
                   id="client-password"
                   type="password"
@@ -1230,17 +1450,19 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                   value={clientFormData.passwordIfDealer}
                   onChange={(e) => setClientFormData({ ...clientFormData, passwordIfDealer: e.target.value })}
                   className="rounded-lg"
+                  required
                 />
               </div>
             )}
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="client-address">Address *</Label>
+              <Label htmlFor="client-address">Address <span className="text-red-500">*</span></Label>
               <Input
                 id="client-address"
                 placeholder="Enter full address"
                 value={clientFormData.address}
                 onChange={(e) => setClientFormData({ ...clientFormData, address: e.target.value })}
                 className="rounded-lg"
+                required
               />
             </div>
           </div>
@@ -1260,19 +1482,21 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label>Brand *</Label>
+              <Label>Brand <span className="text-red-500">*</span></Label>
               <Input
                 value={brandFormData.brand}
                 onChange={(e) => setBrandFormData({ ...brandFormData, brand: e.target.value })}
-              className="rounded-lg"
+                className="rounded-lg"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label>Model *</Label>
+              <Label>Model <span className="text-red-500">*</span></Label>
               <Input
                 value={brandFormData.model}
                 onChange={(e) => setBrandFormData({ ...brandFormData, model: e.target.value })}
                 className="rounded-lg"
+                required
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -1300,12 +1524,13 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
             <DialogDescription>Describe the complaint type</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Label>Complaint Description *</Label>
+            <Label>Complaint Description <span className="text-red-500">*</span></Label>
             <Textarea
               value={complaintFormData.description}
               onChange={(e) => setComplaintFormData({ ...complaintFormData, description: e.target.value })}
               className="rounded-lg min-h-[150px]"
               placeholder="Enter complaint description..."
+              required
             />
           </div>
           <DialogFooter>
@@ -1323,13 +1548,14 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
             <DialogDescription>Specify how many trays you want to add</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Label>Number of Trays to Add *</Label>
+            <Label>Number of Trays to Add <span className="text-red-500">*</span></Label>
             <Input
               type="number"
               min="1"
               max="200"
               value={trayFormData.numberOfTrays}
               onChange={(e) => setTrayFormData({ numberOfTrays: parseInt(e.target.value) || 1 })}
+              required
             />
           </div>
           <DialogFooter>
@@ -1348,11 +1574,12 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label>Name *</Label>
+              <Label>Name <span className="text-red-500">*</span></Label>
               <Input
                 value={technicianFormData.name}
                 onChange={(e) => setTechnicianFormData({ ...technicianFormData, name: e.target.value })}
                 className="rounded-lg"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -1363,29 +1590,46 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 onChange={(e) => setTechnicianFormData({ ...technicianFormData, email: e.target.value })}
                 className="rounded-lg"
               />
+              {technicianFormData.email && !isEmailValid(technicianFormData.email) && (
+                <p className="text-xs text-red-500">Please enter a valid email address</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Password *</Label>
+              <Label>Password <span className="text-red-500">*</span></Label>
               <Input
                 type="password"
                 value={technicianFormData.password}
                 onChange={(e) => setTechnicianFormData({ ...technicianFormData, password: e.target.value })}
                 className="rounded-lg"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label>Phone *</Label>
+              <Label>Phone <span className="text-red-500">*</span></Label>
               <Input
+                type="tel"
                 value={technicianFormData.phone}
-                onChange={(e) => setTechnicianFormData({ ...technicianFormData, phone: e.target.value })}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "");
+                  if (digitsOnly.length <= 10) {
+                    setTechnicianFormData({ ...technicianFormData, phone: digitsOnly });
+                  }
+                }}
+                maxLength={10}
+                placeholder="10-digit phone number"
                 className="rounded-lg"
+                required
               />
+              {technicianFormData.phone && technicianFormData.phone.length !== 10 && (
+                <p className="text-xs text-red-500">Phone number must be 10 digits</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Date of Birth</Label>
               <Input
                 type="date"
                 value={technicianFormData.dob}
+                max={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setTechnicianFormData({ ...technicianFormData, dob: e.target.value })}
                 className="rounded-lg"
               />
@@ -1395,6 +1639,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
               <Input
                 type="date"
                 value={technicianFormData.doj}
+                max={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setTechnicianFormData({ ...technicianFormData, doj: e.target.value })}
                 className="rounded-lg"
               />

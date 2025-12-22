@@ -199,6 +199,7 @@ function ClientTable({
                   <TableCell>{client.email}</TableCell>
 
                   <TableCell>
+                    {client.clientType === "Dealer" && (
                     <div className="flex items-center gap-2">
                       <span>
                         {showPassword[client.id]
@@ -219,6 +220,7 @@ function ClientTable({
                         )}
                       </Button>
                     </div>
+                    )}
                   </TableCell>
 
                   <TableCell>{client.phone}</TableCell>

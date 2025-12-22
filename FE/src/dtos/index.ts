@@ -36,7 +36,7 @@ export interface JobSheetDto {
   estimateAmount?: number;
   amountPaid?: number;
   picture?: string; 
-  status: "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Paid";
+  status: "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Not Repairable - Delivered" | "Repair Declined - Delivered" | "Paid";
   createdOn: string;
   spares?: SparesDto;
   totalAmount?: number;

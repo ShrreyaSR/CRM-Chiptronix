@@ -179,7 +179,7 @@ function AddTrayDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl">
-        
+
         <DialogHeader>
           <DialogTitle>Add Multiple Trays</DialogTitle>
           <DialogDescription>
@@ -190,25 +190,37 @@ function AddTrayDialog({
         <div className="space-y-4 py-4">
           <Label>Number of Trays to Add</Label>
           <Input
-            type="number"
-            min="1"
-            max="200"
-            value={numberOfTraysToAdd}
-            onChange={(e) =>
-              setNumberOfTraysToAdd(parseInt(e.target.value))
-            }
+            type="text"
+            inputMode="numeric"
+            value={numberOfTraysToAdd === "" ? "" : numberOfTraysToAdd}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, "");
+
+              if (value === "") {
+                setNumberOfTraysToAdd("");
+                return;
+              }
+
+              const num = Number(value);
+              if (num >= 1 && num <= 1000) {
+                setNumberOfTraysToAdd(num);
+              }
+            }}
+            placeholder="1–1000"
           />
-          <p className="text-xs text-gray-500">* The number of trays to add must be greater than the number of existing trays.</p>
+
+
+          <p className="text-xs text-gray-500">* The number of trays to add must be greater than the number of existing trays and less than 1000.</p>
 
           <p className="text-sm text-gray-500">
             {trays.length > 0
               ? `Next tray will be T-${String(
-                  Math.max(
-                    ...trays.map((t: any) =>
-                      parseInt(t.trayNumber.replace(/\D/g, ""))
-                    )
-                  ) + 1
-                ).padStart(3, "0")}`
+                Math.max(
+                  ...trays.map((t: any) =>
+                    parseInt(t.trayNumber.replace(/\D/g, ""))
+                  )
+                ) + 1
+              ).padStart(3, "0")}`
               : "Next tray will be T-001"}
           </p>
         </div>
