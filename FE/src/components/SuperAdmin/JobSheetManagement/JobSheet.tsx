@@ -101,6 +101,7 @@ import { toast } from "sonner";
 export function SuperAdminJobSheet() {
   const navigate = useNavigate();
   const [jobSheets, setJobSheets] = useState<JobSheetDto[]>([]);
+  const [allJobSheets, setAllJobSheets] = useState<JobSheetDto[]>([]); // Unfiltered job sheets for stats
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [technicians, setTechnician] = useState<TechnicianDto[]>([]);
   const [selectedJobSheet, setSelectedJobSheet] = useState<JobSheetDto>();
@@ -116,6 +117,7 @@ export function SuperAdminJobSheet() {
 
   useEffect(() => {
     fetchData();
+    fetchAllJobSheets(); // Fetch all job sheets for stats
   }, []);
 
   const fetchData = async () => {
@@ -272,6 +274,18 @@ export function SuperAdminJobSheet() {
     );
   };
 
+  // Fetch all job sheets (unfiltered) for stats calculation
+  async function fetchAllJobSheets() {
+    try {
+      const res = await crmApi.jobSheet.getAll({
+        limit: -1, // Get all job sheets
+      });
+      setAllJobSheets(res.data.items || []);
+    } catch (error) {
+      console.error("Error fetching all job sheets:", error);
+    }
+  }
+
   async function fetchJobSheets() {
     // Convert client and assignedTo to numbers if needed, ensuring proper types for JobSheetQueryParams
     const fixedParams = {
@@ -357,7 +371,8 @@ export function SuperAdminJobSheet() {
       }
 
       toast.success("Status updated successfully");
-      fetchJobSheets(); // Refresh the list
+      fetchJobSheets(); // Refresh the filtered list
+      fetchAllJobSheets(); // Refresh stats
     } catch (error) {
       toast.error("Failed to update status");
       console.error(error);
@@ -403,7 +418,8 @@ export function SuperAdminJobSheet() {
         assignedTo: technicianId as any
       });
       toast.success("Assigned technician updated successfully");
-      fetchJobSheets(); // Refresh the list
+      fetchJobSheets(); // Refresh the filtered list
+      fetchAllJobSheets(); // Refresh stats
     } catch (error) {
       toast.error("Failed to update assigned technician");
       console.error(error);
@@ -414,15 +430,16 @@ export function SuperAdminJobSheet() {
   // Reset to first page when filters change
   const resetPagination = () => setCurrentPage(1);
 
+  // Calculate stats from allJobSheets (unfiltered) so they don't change based on filters
   const stats = {
-    total: jobSheets.length,
-    pending: jobSheets.filter((j) => j.status === "Pending").length,
-    inProgress: jobSheets.filter((j) => j.status === "In Progress").length,
-    completed: jobSheets.filter((j) => j.status === "Completed").length,
-    delivered: jobSheets.filter((j) => isDeliveredStatus(j.status)).length,
-    waitingSpares: jobSheets.filter((j) => j.status === "Waiting for Spares")
+    total: allJobSheets.length,
+    pending: allJobSheets.filter((j) => j.status === "Pending").length,
+    inProgress: allJobSheets.filter((j) => j.status === "In Progress").length,
+    completed: allJobSheets.filter((j) => j.status === "Completed").length,
+    delivered: allJobSheets.filter((j) => isDeliveredStatus(j.status)).length,
+    waitingSpares: allJobSheets.filter((j) => j.status === "Waiting for Spares")
       .length,
-    waitingCustomer: jobSheets.filter(
+    waitingCustomer: allJobSheets.filter(
       (j) => j.status === "Waiting for Customer Reply"
     ).length,
   };
