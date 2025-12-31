@@ -216,6 +216,35 @@ html {
   }
 }
 
+/* Print styles for PrintBill component */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-content {
+    visibility: visible;
+  }
+  
+  .print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+  
+  .print-page:last-child {
+    page-break-after: auto;
+  }
+  
+  @page {
+    size: A4;
+    margin: 0.5in;
+  }
+  
+  body {
+    background: white;
+  }
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;

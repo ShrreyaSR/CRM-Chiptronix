@@ -430,6 +430,8 @@ export function SuperAdminJobSheet() {
   // Reset to first page when filters change
   const resetPagination = () => setCurrentPage(1);
 
+      }, 1000);
+    }, 800);
   // Calculate stats from allJobSheets (unfiltered) so they don't change based on filters
   const stats = {
     total: allJobSheets.length,
