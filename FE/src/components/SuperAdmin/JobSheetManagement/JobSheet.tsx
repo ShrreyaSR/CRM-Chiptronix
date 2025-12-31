@@ -338,7 +338,7 @@ export function SuperAdminJobSheet() {
     try {
       // Get the current job sheet to find its tray ID
       const currentJob = jobSheets.find(j => Number(j.id) === jobId);
-      
+
       const updateData: any = {
         status: newStatus as "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Not Repairable - Delivered" | "Repair Declined - Delivered" | "Paid"
       };
@@ -388,7 +388,7 @@ export function SuperAdminJobSheet() {
     if (newStatus === "Completed" || newStatus === "Not Repairable" || newStatus === "Repair Declined") {
       const totalAmount = statusFormData.totalAmount ? parseFloat(statusFormData.totalAmount) : undefined;
       const fixSummary = statusFormData.fixSummary.trim() || undefined;
-      
+
       if (!totalAmount) {
         toast.error("Please enter total amount");
         return;
@@ -397,7 +397,7 @@ export function SuperAdminJobSheet() {
       await updateJobSheetStatus(jobId, newStatus, totalAmount, fixSummary);
     } else if (newStatus === "Paid") {
       const amountPaid = statusFormData.amountPaid ? parseFloat(statusFormData.amountPaid) : undefined;
-      
+
       if (!amountPaid) {
         toast.error("Please enter amount paid");
         return;
@@ -436,12 +436,18 @@ export function SuperAdminJobSheet() {
     pending: allJobSheets.filter((j) => j.status === "Pending").length,
     inProgress: allJobSheets.filter((j) => j.status === "In Progress").length,
     completed: allJobSheets.filter((j) => j.status === "Completed").length,
-    delivered: allJobSheets.filter((j) => isDeliveredStatus(j.status)).length,
-    waitingSpares: allJobSheets.filter((j) => j.status === "Waiting for Spares")
-      .length,
-    waitingCustomer: allJobSheets.filter(
-      (j) => j.status === "Waiting for Customer Reply"
+    delivered: allJobSheets.filter((j) => 
+      j.status === "Delivered" || 
+      j.status === "Not Repairable - Delivered" || 
+      j.status === "Repair Declined - Delivered"
     ).length,
+    waiting: allJobSheets.filter((j) => 
+      j.status === "Waiting for Spares" || 
+      j.status === "Waiting for Customer Reply"
+    ).length,
+    paid: allJobSheets.filter((j) => j.status === "Paid").length,
+    notRepairable: allJobSheets.filter((j) => j.status === "Not Repairable").length,
+    repairDeclined: allJobSheets.filter((j) => j.status === "Repair Declined").length,
   };
 
 
@@ -559,7 +565,7 @@ export function SuperAdminJobSheet() {
             <CardContent className="relative z-10 pb-3">
               <div className="flex items-center gap-1.5 text-teal-100">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-xs">Closed</span>
+                <span className="text-xs">All delivered</span>
               </div>
             </CardContent>
           </Card>
@@ -568,34 +574,70 @@ export function SuperAdminJobSheet() {
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-rose-100 text-xs">
-                Waiting Spares
+                Waiting
               </CardDescription>
               <CardTitle className="text-white text-2xl">
-                {stats.waitingSpares}
+                {stats.waiting}
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10 pb-3">
               <div className="flex items-center gap-1.5 text-rose-100">
                 <Package className="w-3.5 h-3.5" />
-                <span className="text-xs">Parts needed</span>
+                <span className="text-xs">On hold</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
             <CardHeader className="pb-2 relative z-10">
-              <CardDescription className="text-violet-100 text-xs">
-                Waiting Customer
+              <CardDescription className="text-green-100 text-xs">
+                Paid
               </CardDescription>
               <CardTitle className="text-white text-2xl">
-                {stats.waitingCustomer}
+                {stats.paid}
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10 pb-3">
-              <div className="flex items-center gap-1.5 text-violet-100">
-                <User className="w-3.5 h-3.5" />
-                <span className="text-xs">On hold</span>
+              <div className="flex items-center gap-1.5 text-green-100">
+                <IndianRupeeIcon className="w-3.5 h-3.5" />
+                <span className="text-xs">Payment done</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-red-500 to-rose-500 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <CardHeader className="pb-2 relative z-10">
+              <CardDescription className="text-red-100 text-xs">
+                Not Repairable
+              </CardDescription>
+              <CardTitle className="text-white text-2xl">
+                {stats.notRepairable}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 pb-3">
+              <div className="flex items-center gap-1.5 text-red-100">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="text-xs">Cannot repair</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-amber-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <CardHeader className="pb-2 relative z-10">
+              <CardDescription className="text-orange-100 text-xs">
+                Repair Declined
+              </CardDescription>
+              <CardTitle className="text-white text-2xl">
+                {stats.repairDeclined}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 pb-3">
+              <div className="flex items-center gap-1.5 text-orange-100">
+                <X className="w-3.5 h-3.5" />
+                <span className="text-xs">Declined</span>
               </div>
             </CardContent>
           </Card>
@@ -899,74 +941,89 @@ export function SuperAdminJobSheet() {
           {/* Table */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
             <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative custom-scrollbar">
-              <Table className="w-full">
+              <Table className="w-full" style={{ tableLayout: 'fixed' }}>
                 <TableHeader className="bg-gradient-to-r from-gray-50 to-blue-50/30 sticky top-0 z-10 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gray-200">
                   <TableRow className="hover:bg-transparent">
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[110px] whitespace-nowrap"
+                      className="text-gray-700 cursor-pointer group w-[120px] max-w-[120px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("id")}
+                      style={{ width: '120px', maxWidth: '120px' }}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center truncate">
                         Job Number
                         {getSortIcon("id")}
                       </div>
                     </TableHead>
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[150px] whitespace-nowrap"
+                      className="text-gray-700 cursor-pointer group w-[100px] max-w-[100px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("client")}
+                      style={{ width: '150px', maxWidth: '150px' }}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center truncate">
                         Client
                         {getSortIcon("client")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-gray-700 min-w-[180px] whitespace-nowrap">
-                      Device
+                    <TableHead
+                      className="text-gray-700 w-[200px] max-w-[200px] whitespace-nowrap overflow-hidden"
+                      style={{ width: '100px', maxWidth: '100px' }}
+                    >
+                      <div className="flex items-center truncate">
+                        Device
+
+                      </div>
+
                     </TableHead>
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[140px] whitespace-nowrap"
-                      onClick={() => handleSort("serialNumber")}
+                      className="text-gray-700 w-[300px] max-w-[300px] overflow-hidden"
+                      style={{ width: '150px', maxWidth: '150px' }}
                     >
-                      <div className="flex items-center">
-                        Serial Number
-                        {getSortIcon("serialNumber")}
+                      <div className="flex items-center truncate">
+                        Complaints
+
                       </div>
                     </TableHead>
-                    <TableHead className="text-gray-700 min-w-[250px]">
-                      Complaints
-                    </TableHead>
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[120px] whitespace-nowrap"
+                      className="text-gray-700 cursor-pointer group w-[180px] max-w-[180px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("status")}
+                      style={{ width: '180px', maxWidth: '180px' }}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center truncate">
                         Status
                         {getSortIcon("status")}
                       </div>
                     </TableHead>
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[120px] whitespace-nowrap"
+                      className="text-gray-700 cursor-pointer group w-[130px] max-w-[130px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("createdOn")}
+                      style={{ width: '100px', maxWidth: '100px' }}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center truncate">
                         Created On
                         {getSortIcon("createdOn")}
                       </div>
                     </TableHead>
                     <TableHead
-                      className="text-gray-700 cursor-pointer group min-w-[140px] whitespace-nowrap"
+                      className="text-gray-700 cursor-pointer group w-[160px] max-w-[160px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("receivedBy")}
+                      style={{ width: '160px', maxWidth: '160px' }}
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center truncate">
                         Assigned To
                         {getSortIcon("receivedBy")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-gray-700 min-w-[80px] whitespace-nowrap">
+                    <TableHead
+                      className="text-gray-700 w-[100px] max-w-[100px] whitespace-nowrap overflow-hidden"
+                      style={{ width: '50px', maxWidth: '50px' }}
+                    >
                       Tray
                     </TableHead>
 
-                    <TableHead className="text-gray-700 text-right min-w-[150px] whitespace-nowrap">
+                    <TableHead
+                      className="text-gray-700 text-right w-[150px] max-w-[150px] whitespace-nowrap overflow-hidden"
+                      style={{ width: '150px', maxWidth: '150px' }}
+                    >
                       Action
                     </TableHead>
                   </TableRow>
@@ -975,7 +1032,7 @@ export function SuperAdminJobSheet() {
                   {jobSheetRes.total === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={11}
+                        colSpan={9}
                         className="text-center py-12 text-gray-500"
                       >
                         No job sheets found
@@ -987,45 +1044,60 @@ export function SuperAdminJobSheet() {
                         key={job.id}
                         className="hover:bg-blue-50/30 transition-colors"
                       >
-                        <TableCell className="text-blue-600 whitespace-nowrap">
-                          {job.id}
+                        <TableCell
+                          className="text-blue-600 whitespace-nowrap overflow-hidden"
+                          style={{ width: '120px', maxWidth: '120px', minWidth: '120px' }}
+                        >
+                          <div className="truncate" title={String(job.id)}>
+                            #{job.id}
+                          </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="text-gray-900">{job.client.name}</div>
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{ width: '150px', maxWidth: '150px', minWidth: '150px' }}
+                        >
+                          <div className="text-gray-900 truncate min-w-0" title={job.client.name}>
+                            {job.client.name}
+                          </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div>
-                            <div className="text-gray-900">
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{ width: '100px', maxWidth: '100px', minWidth: '100px' }}
+                        >
+                          <div className="min-w-0">
+                            <div className="text-gray-900 truncate min-w-0" title={`${job.brand.brand} ${job.brand.model}`}>
                               {job.brand.brand} {job.brand.model}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 truncate min-w-0" title={job.color}>
                               {job.color}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="text-xs text-gray-700 font-mono">
-                            {job.serialNumber}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[250px]">
+                        <TableCell
+                          className="overflow-hidden"
+                          style={{ width: '150px', maxWidth: '150px', minWidth: '150px' }}
+                        >
                           <div
-                            className="text-gray-700 line-clamp-2"
+                            className="text-gray-700 line-clamp-2 min-w-0"
                             title={job.complaint.description}
                           >
                             {job.complaint.description}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{ width: '180px', maxWidth: '180px', minWidth: '180px' }}
+                        >
                           <Select
                             value={job.status}
                             onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
                           >
-                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
+                            <SelectTrigger className="w-full max-w-full h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
                               <Badge
                                 className={`${getStatusColor(
                                   job.status
-                                )} border rounded-lg px-3 py-1 cursor-pointer w-full justify-center`}
+                                )} border rounded-lg px-3 py-1 cursor-pointer w-full justify-center truncate min-w-0`}
+                                title={job.status}
                               >
                                 {job.status}
                               </Badge>
@@ -1045,12 +1117,18 @@ export function SuperAdminJobSheet() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="text-sm text-gray-700">
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{ width: '100px', maxWidth: '100px', minWidth: '100px' }}
+                        >
+                          <div className="text-sm text-gray-700 truncate min-w-0" title={job.createdOn.split("T")[0]}>
                             {job.createdOn.split("T")[0]}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{ width: '160px', maxWidth: '160px', minWidth: '160px' }}
+                        >
                           <Select
                             value={job.assignedTo?.id?.toString() || "none"}
                             onValueChange={(value) => {
@@ -1058,8 +1136,8 @@ export function SuperAdminJobSheet() {
                               handleAssignedToUpdate(Number(job.id), techId);
                             }}
                           >
-                            <SelectTrigger className="w-[150px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
-                              <div className="text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-sm">
+                            <SelectTrigger className="w-full max-w-full h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
+                              <div className="text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-sm truncate min-w-0" title={job.assignedTo?.name || "Not assigned"}>
                                 {job.assignedTo?.name || "Not assigned"}
                               </div>
                             </SelectTrigger>
@@ -1073,10 +1151,18 @@ export function SuperAdminJobSheet() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="text-gray-700 whitespace-nowrap">
-                          {job.tray.trayNumber}
+                        <TableCell
+                          className="text-gray-700 whitespace-nowrap overflow-hidden"
+                          style={{ width: '50px', maxWidth: '50px', minWidth: '50px' }}
+                        >
+                          <div className="truncate min-w-0" title={job.tray.trayNumber}>
+                            {job.tray.trayNumber}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                        <TableCell
+                          className="text-right whitespace-nowrap overflow-hidden"
+                          style={{ width: '150px', maxWidth: '150px', minWidth: '150px' }}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1166,8 +1252,8 @@ export function SuperAdminJobSheet() {
                           size="sm"
                           onClick={() => setCurrentPage(pageNumber)}
                           className={`rounded-lg w-9 ${currentPage === pageNumber
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : ""
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : ""
                             }`}
                         >
                           {pageNumber}
@@ -1521,7 +1607,7 @@ export function SuperAdminJobSheet() {
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-gray-900">
-              {statusUpdateDialog.newStatus === "Paid" 
+              {statusUpdateDialog.newStatus === "Paid"
                 ? "Enter Payment Information"
                 : `Update Status to ${statusUpdateDialog.newStatus}`}
             </DialogTitle>
