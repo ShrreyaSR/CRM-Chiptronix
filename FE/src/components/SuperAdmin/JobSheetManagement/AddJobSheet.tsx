@@ -369,19 +369,19 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   // Validation functions for add dialogs
   const isEmailValid = (email: string) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPhoneValid = (phone: string) => phone.trim().length === 10 && /^\d+$/.test(phone);
-  
-  const canAddClient = 
-    clientFormData.name.trim() !== "" && 
-    isPhoneValid(clientFormData.phone) && 
-    clientFormData.address.trim() !== "" && 
+
+  const canAddClient =
+    clientFormData.name.trim() !== "" &&
+    isPhoneValid(clientFormData.phone) &&
+    clientFormData.address.trim() !== "" &&
     isEmailValid(clientFormData.email) &&
     (!clientFormData.clientType || clientFormData.clientType === "Customer" || (clientFormData.clientType === "Dealer" && clientFormData.passwordIfDealer.trim() !== ""));
   const canAddBrand = brandFormData.brand.trim() !== "" && brandFormData.model.trim() !== "";
   const canAddComplaint = complaintFormData.description.trim() !== "";
   const canAddTray = trayFormData.numberOfTrays > 0 && trayFormData.numberOfTrays <= 200;
-  const canAddTechnician = 
-    technicianFormData.name.trim() !== "" && 
-    technicianFormData.password.trim() !== "" && 
+  const canAddTechnician =
+    technicianFormData.name.trim() !== "" &&
+    technicianFormData.password.trim() !== "" &&
     isPhoneValid(technicianFormData.phone) &&
     isEmailValid(technicianFormData.email);
 
@@ -1197,14 +1197,21 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="In Progress">In Progress</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
                         <SelectItem value="Delivered">Delivered</SelectItem>
-                        <SelectItem value="Waiting for Spares">Waiting for Spares</SelectItem>
-                        <SelectItem value="Waiting for Customer Reply">Waiting for Customer Reply</SelectItem>
+                        <SelectItem value="Waiting for Spares">
+                          Waiting for Spares
+                        </SelectItem>
+                        <SelectItem value="Waiting for Customer Reply">
+                          Waiting for Customer Reply
+                        </SelectItem>
                         <SelectItem value="Not Repairable">Not Repairable</SelectItem>
                         <SelectItem value="Repair Declined">Repair Declined</SelectItem>
+                        <SelectItem value="Not Repairable - Delivered">Not Repairable - Delivered</SelectItem>
+                        <SelectItem value="Repair Declined - Delivered">Repair Declined - Delivered</SelectItem>
                         <SelectItem value="Paid">Paid</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1324,7 +1331,6 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 </div>
               )}
 
-              {/* Picture */}
               <div className="space-y-4">
                 <div className="grid gap-4 grid-cols-1">
                   <div className="space-y-2">
