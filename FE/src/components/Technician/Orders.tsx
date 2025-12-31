@@ -318,218 +318,96 @@ export function TechnicianOrders() {
         </CardHeader>
         <CardContent className="pt-2 px-6 pb-6">
           {/* Search Bar */}
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by client, job ID, brand, or complaints..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  resetPagination();
-                }}
-                className="pl-11 h-11 rounded-xl border-gray-200 focus:border-blue-400 focus:ring-blue-400/20 bg-gray-50/50"
-              />
-            </div>
+{/* Wrapper */}
+<div className="mb-6 space-y-3">
 
-            {/* Advanced Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Date Range Filter */}
-              <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50/50 justify-start"
-                  >
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {dateRange.from.toLocaleDateString("en-IN")} -{" "}
-                          {dateRange.to.toLocaleDateString("en-IN")}
-                        </>
-                      ) : (
-                        dateRange.from.toLocaleDateString("en-IN")
-                      )
-                    ) : (
-                      <span>Date Range</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto p-2 scale-90 origin-top-left"
-                  side="bottom"
-                  align="start"
-                  avoidCollisions={false}
-                  sideOffset={4}
-                >
-                  <div className="p-2 space-y-3 text-sm">
-                    {" "}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Select Date Range</Label>
+  {/* 🔹 Row 1: Search + Filter */}
+  <div className="flex flex-col lg:flex-row gap-4">
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => {
-                            const today = new Date();
-                            setDateRange({ from: today, to: today });
-                            resetPagination();
-                          }}
-                        >
-                          Today
-                        </Button>
-                      </div>
+    {/* Search */}
+    <div className="flex-1 relative">
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <Input
+        placeholder="Search by client, job ID, brand, or complaints..."
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          resetPagination();
+        }}
+        className="pl-11 h-11 rounded-xl border-gray-200 focus:border-blue-400 focus:ring-blue-400/20 bg-gray-50/50"
+      />
+    </div>
 
-                      <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={(range: any) => {
-                          setDateRange(range);
-                          resetPagination();
-                        }}
-                        numberOfMonths={1}
-                        className="[&_.rdp-day]:h-6 [&_.rdp-day]:w-6 
-               [&_.rdp-day]:text-xs [&_.rdp-nav]:text-xs
-               [&_.rdp-caption_label]:text-xs 
-               [&_.rdp-head_cell]:text-[10px]"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-8 px-2 text-xs" // 🔥 small buttons
-                        onClick={() => {
-                          setDateRange({ from: undefined, to: undefined });
-                          resetPagination();
-                          setShowDatePicker(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
+    {/* Filter */}
+    <div className="w-full lg:w-[320px]">
+      <Select
+        value={filterSpareStatus}
+        onValueChange={(value) => {
+          setFilterSpareStatus(value);
+          resetPagination();
+        }}
+      >
+        <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50/50">
+          <Filter className="w-4 h-4 mr-2" />
+          <SelectValue placeholder="Filter by Spare Status" />
+        </SelectTrigger>
 
-                      <Button
-                        className="flex-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700"
-                        onClick={() => setShowDatePicker(false)}
-                      >
-                        Apply
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+        <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="Requested">Requested</SelectItem>
+          <SelectItem value="Approved">Approved</SelectItem>
+          <SelectItem value="Purchase Initiated">Purchase Initiated</SelectItem>
+          <SelectItem value="Purchased">Purchased</SelectItem>
+          <SelectItem value="Delivered to Technician">
+            Delivered to Technician
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
 
-              {/* Client Filter */}
-              <Select
-                value={filterClient}
-                onValueChange={(value: SetStateAction<string>) => {
-                  setFilterClient(value);
-                  resetPagination();
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50/50">
-                  <User className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  </div>
 
-              {/* Spares Status Filter */}
-              <Select
-                value={filterSpareStatus}
-                onValueChange={(value: SetStateAction<string>) => {
-                  setFilterSpareStatus(value);
-                  resetPagination();
-                }}
-              >
-                <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50/50">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by Spare Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Requested">Requested</SelectItem>
-                  <SelectItem value="Approved">Approved</SelectItem>
-                  <SelectItem value="Purchase Initiated">Purchase Initiated</SelectItem>
-                  <SelectItem value="Purchased">Purchased</SelectItem>
-                  <SelectItem value="Delivered to Technician">Delivered to Technician</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+  {/* 🔹 Row 2: Active Filters (always below) */}
+  {(filterSpareStatus !== "all" ||
+    filterClient !== "all" ||
+    dateRange.from) && (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-sm text-gray-600">Active Filters:</span>
 
-            {/* Active Filters Display */}
-            {(filterSpareStatus !== "all" ||
-              filterClient !== "all" ||
-              dateRange.from) && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-gray-600">Active Filters:</span>
-                  {filterSpareStatus !== "all" && (
-                    <Badge variant="secondary" className="rounded-full">
-                      Status: {filterSpareStatus}
-                      <button
-                        onClick={() => {
-                          setFilterSpareStatus("all");
-                          resetPagination();
-                        }}
-                        className="ml-2"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {filterClient !== "all" && (
-                    <Badge variant="secondary" className="rounded-full">
-                      Client: {clients.find(c => c.id.toString() === filterClient)?.name || filterClient}
-                      <button
-                        onClick={() => {
-                          setFilterClient("all");
-                          resetPagination();
-                        }}
-                        className="ml-2"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  {dateRange.from && (
-                    <Badge variant="secondary" className="rounded-full">
-                      Date Range
-                      <button
-                        onClick={() => {
-                          setDateRange({ from: undefined, to: undefined });
-                          resetPagination();
-                        }}
-                        className="ml-2"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setFilterSpareStatus("all");
-                      setFilterClient("all");
-                      setDateRange({ from: undefined, to: undefined });
-                      resetPagination();
-                    }}
-                    className="text-blue-600 hover:text-blue-700 h-7"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              )}
-          </div>
+      {filterSpareStatus !== "all" && (
+        <Badge variant="secondary" className="rounded-full">
+          Status: {filterSpareStatus}
+          <button
+            onClick={() => {
+              setFilterSpareStatus("all");
+              resetPagination();
+            }}
+            className="ml-2"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </Badge>
+      )}
+
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          setFilterSpareStatus("all");
+          setFilterClient("all");
+          setDateRange({ from: undefined, to: undefined });
+          resetPagination();
+        }}
+        className="text-blue-600 hover:text-blue-700 h-7"
+      >
+        Clear All
+      </Button>
+    </div>
+  )}
+
+</div>
+
 
           {/* Table */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">

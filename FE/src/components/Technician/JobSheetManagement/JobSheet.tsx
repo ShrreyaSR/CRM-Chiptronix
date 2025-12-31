@@ -585,7 +585,7 @@ export function TechnicianJobSheet() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50/50 justify-start"
+                    className="h-9 rounded-xl border-gray-200 bg-gray-50/50 justify-start"
                   >
                     <CalendarIcon className="w-4 h-4 mr-2" />
                     {dateRange.from ? (
@@ -603,66 +603,82 @@ export function TechnicianJobSheet() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                  className="w-auto p-2 scale-90 origin-top-left"
+                  className="w-auto p-0"
                   side="bottom"
                   align="start"
-                  avoidCollisions={false}
-                  sideOffset={4}
                 >
-                  <div className="p-2 space-y-3 text-sm">
-                    {" "}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Select Date Range</Label>
-
+                  <div className="p-4 flex gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs">From Date</Label>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs"
+                          className="h-6 px-2 text-xs"
                           onClick={() => {
                             const today = new Date();
-                            setDateRange({ from: today, to: today });
+                            setDateRange({ from: today, to: dateRange.to });
                             resetPagination();
                           }}
                         >
                           Today
                         </Button>
                       </div>
-
                       <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={(range: any) => {
-                          setDateRange(range);
+                        mode="single"
+                        selected={dateRange.from}
+                        onSelect={(date) => {
+                          setDateRange(prev => ({ ...prev, from: date }));
                           resetPagination();
                         }}
-                        numberOfMonths={1}
-                        className="[&_.rdp-day]:h-6 [&_.rdp-day]:w-6 
-               [&_.rdp-day]:text-xs [&_.rdp-nav]:text-xs
-               [&_.rdp-caption_label]:text-xs 
-               [&_.rdp-head_cell]:text-[10px]"
+                        initialFocus
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-8 px-2 text-xs" // 🔥 small buttons
-                        onClick={() => {
-                          setDateRange({ from: undefined, to: undefined });
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs">To Date</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            const today = new Date();
+                            setDateRange({ from: dateRange.from, to: today });
+                            resetPagination();
+                          }}
+                        >
+                          Today
+                        </Button>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={dateRange.to}
+                        onSelect={(date) => {
+                          setDateRange(prev => ({ ...prev, to: date }));
                           resetPagination();
-                          setShowDatePicker(false);
                         }}
-                      >
-                        Clear
-                      </Button>
-
-                      <Button
-                        className="flex-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700"
-                        onClick={() => setShowDatePicker(false)}
-                      >
-                        Apply
-                      </Button>
+                        disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                      />
                     </div>
+                  </div>
+                  <div className="flex gap-2 p-2 border-t">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-8 px-2 text-xs"
+                      onClick={() => {
+                        setDateRange({ from: undefined, to: undefined });
+                        resetPagination();
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      className="flex-1 h-8 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setShowDatePicker(false)}
+                    >
+                      Apply
+                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -892,9 +908,6 @@ export function TechnicianJobSheet() {
                     <TableHead className="text-gray-700 min-w-[80px] whitespace-nowrap">
                       Tray
                     </TableHead>
-                    <TableHead className="text-gray-700 min-w-[120px] whitespace-nowrap">
-                      Estimate
-                    </TableHead>
                     <TableHead className="text-gray-700 text-right min-w-[150px] whitespace-nowrap">
                       Action
                     </TableHead>
@@ -950,7 +963,7 @@ export function TechnicianJobSheet() {
                             value={job.status}
                             onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
                           >
-                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
+                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
                               <Badge
                                 className={`${getStatusColor(
                                   job.status
@@ -968,13 +981,16 @@ export function TechnicianJobSheet() {
                               <SelectItem value="Waiting for Customer Reply">Waiting for Customer Reply</SelectItem>
                               <SelectItem value="Not Repairable">Not Repairable</SelectItem>
                               <SelectItem value="Repair Declined">Repair Declined</SelectItem>
+                              <SelectItem value="Not Repairable - Delivered">Not Repairable - Delivered</SelectItem>
+                              <SelectItem value="Repair Declined - Delivered">Repair Declined - Delivered</SelectItem>
                               <SelectItem value="Paid">Paid</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
+                        
                         <TableCell className="whitespace-nowrap">
                           <div className="text-sm text-gray-700">
-                            {job.createdOn}
+                            {job.createdOn.split("T")[0]}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -1002,13 +1018,6 @@ export function TechnicianJobSheet() {
                         </TableCell>
                         <TableCell className="text-gray-700 whitespace-nowrap">
                           {job.tray.trayNumber}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div>
-                            <div className="text-gray-900">
-                              {job.estimateAmount}
-                            </div>
-                          </div>
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <Button
