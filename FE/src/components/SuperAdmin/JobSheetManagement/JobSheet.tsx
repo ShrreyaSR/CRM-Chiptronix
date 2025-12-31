@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
+import { createRoot } from "react-dom/client";
 import {
   Card,
   CardContent,
@@ -85,6 +86,7 @@ import {
 } from "../../ui/dropdown-menu";
 import { JobSheetBill } from "../../JobSheetBill";
 import { SerialNumberBarcode } from "../../SerialNumberBarcode";
+import { PrintBill } from "../../PrintBill";
 import { crmApi } from "../../../api";
 import {
   JobSheetDto,
@@ -430,8 +432,132 @@ export function SuperAdminJobSheet() {
   // Reset to first page when filters change
   const resetPagination = () => setCurrentPage(1);
 
+  // Transform JobSheetDto to PrintBill format
+  const transformJobSheetToPrintBill = (jobSheet: JobSheetDto) => {
+    return {
+      id: jobSheet.id,
+      jobNo: jobSheet.id,
+      date: jobSheet.createdOn ? jobSheet.createdOn.split("T")[0] : new Date().toISOString().split("T")[0],
+      customerName: jobSheet.client.name,
+      customerAddress: jobSheet.client.address,
+      customerPhone: jobSheet.client.phone,
+      customerEmail: jobSheet.client.email,
+      model: jobSheet.brand.model,
+      brand: jobSheet.brand.brand,
+      color: jobSheet.color,
+      complaints: jobSheet.complaint.description,
+      problemIdentified: jobSheet.problemsIdentified,
+      status: jobSheet.status,
+      advancePaid: jobSheet.amountPaid,
+      serialNumber: jobSheet.serialNumber,
+    };
+  };
+
+  // Handle direct print of advance bill
+  const handlePrintAdvanceBill = (jobSheet: JobSheetDto) => {
+    const jobData = transformJobSheetToPrintBill(jobSheet);
+    
+    // Remove any existing print container
+    const existingContainer = document.getElementById('temp-print-advance-bill');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+
+    // Create a temporary container for printing (hidden on screen)
+    const printContainer = document.createElement('div');
+    printContainer.id = 'temp-print-advance-bill';
+    printContainer.style.position = 'fixed';
+    printContainer.style.left = '-9999px';
+    printContainer.style.top = '-9999px';
+    printContainer.style.width = '100%';
+    printContainer.style.height = '100%';
+    printContainer.style.zIndex = '99999';
+    printContainer.style.backgroundColor = 'white';
+    printContainer.style.overflow = 'auto';
+    printContainer.style.visibility = 'hidden';
+    document.body.appendChild(printContainer);
+
+    // Add print styles
+    let styleElement = document.getElementById('print-advance-bill-styles');
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = 'print-advance-bill-styles';
+      document.head.appendChild(styleElement);
+    }
+    styleElement.textContent = `
+      /* Hide on screen */
+      #temp-print-advance-bill {
+        position: fixed !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        visibility: hidden !important;
+      }
+      
+      @media print {
+        /* Hide everything except print container */
+        body * {
+          visibility: hidden !important;
+        }
+        #temp-print-advance-bill,
+        #temp-print-advance-bill * {
+          visibility: visible !important;
+        }
+        #temp-print-advance-bill {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          height: auto !important;
+          background: white !important;
+        }
+        .no-print {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        .print-content {
+          visibility: visible !important;
+        }
+        .print-page {
+          page-break-after: always;
+          page-break-inside: avoid;
+        }
+        .print-page:last-child {
+          page-break-after: auto;
+        }
+        @page {
+          size: A4;
+          margin: 0.5in;
+        }
+      }
+    `;
+
+    // Render PrintBill component in the container
+    const root = createRoot(printContainer);
+    root.render(
+      <PrintBill jobData={jobData} />
+    );
+
+    // Wait for React to render, then trigger print
+    setTimeout(() => {
+      // Ensure content is rendered
+      const printContent = printContainer.querySelector('.print-content');
+      if (printContent) {
+        // Trigger print
+        window.print();
+      } else {
+        console.error('Print content not found');
+      }
+      
+      // Clean up after print
+      setTimeout(() => {
+        root.unmount();
+        if (printContainer.parentNode) {
+          printContainer.parentNode.removeChild(printContainer);
+        }
       }, 1000);
     }, 800);
+  };
+
   // Calculate stats from allJobSheets (unfiltered) so they don't change based on filters
   const stats = {
     total: allJobSheets.length,
@@ -684,7 +810,7 @@ export function SuperAdminJobSheet() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50/50 justify-start"
+                    className="h-9 rounded-xl border-gray-200 bg-gray-50/50 justify-start"
                   >
                     <CalendarIcon className="w-4 h-4 mr-2" />
                     {dateRange.from ? (
@@ -1553,6 +1679,18 @@ export function SuperAdminJobSheet() {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem
                       onClick={() => {
+                        if (selectedJobSheet) {
+                          setIsViewDialogOpen(false);
+                          handlePrintAdvanceBill(selectedJobSheet);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Print Advance Bill
+                    </DropdownMenuItem>
+                    {/* <DropdownMenuItem
+                      onClick={() => {
                         setIsViewDialogOpen(false);
                         //handlePrintBill(selectedJobSheet);
                       }}
@@ -1570,8 +1708,8 @@ export function SuperAdminJobSheet() {
                     >
                       <Barcode className="w-4 h-4 mr-2" />
                       Print Serial Number
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
+                    </DropdownMenuItem>*/}
+                  </DropdownMenuContent> 
                 </DropdownMenu>
 
                 <Button
