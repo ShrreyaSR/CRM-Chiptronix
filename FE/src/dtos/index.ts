@@ -23,7 +23,7 @@ export interface JobSheetDto {
   id: string;
   client: ClientDto;
   serviceType:  "Chip level" | "OS installation / upgrades" | "Card level services" | "Warranty claim" | "Return complaint"
-  deviceType: "UPS" | "Projector" | "Desktop" | "Laptop";
+  deviceType: "Laptop" | "UPS" | "Projector" | "Desktop" ;
   brand: BrandDto;
   color: string;
   serialNumber: string;

@@ -338,7 +338,6 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         setFormData(prev => ({ ...prev, brandId: models[0].id.toString() }));
       } else if (!isEditMode) {
         // In add mode, clear selection if multiple models
-        setSelectedModelId("");
         setFormData(prev => ({ ...prev, brandId: "" }));
       } else {
         // In edit mode, ensure the model is selected based on formData.brandId
@@ -769,12 +768,13 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                   <div className="space-y-2">
                     <Label htmlFor="brand" className="text-gray-700">Brand *</Label>
                     <div className="flex gap-2">
-                      <Select
-                        value={selectedBrandName}
-                        onValueChange={(brandName) => {
-                          setSelectedBrandName(brandName);
-                        }}
-                      >
+                    <Select
+                      value={selectedBrandName}
+                      onValueChange={(key) => {
+                        setSelectedBrandName(key);
+                        setSelectedModelId(""); // reset model
+                      }}
+                    >
                         <SelectTrigger id="brand" className="rounded-xl border-gray-200 flex-1">
                           <SelectValue placeholder="Select brand" />
                         </SelectTrigger>
@@ -823,15 +823,15 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                         setSelectedModelId(value);
                         setFormData({ ...formData, brandId: value });
                       }}
-                      disabled={!formData.brandId || availableModels.length === 0}
+                      disabled={!selectedBrandName || availableModels.length === 0}
                     >
                       <SelectTrigger id="model" className="rounded-xl border-gray-200">
-                        <SelectValue placeholder={formData.brandId ? "Select model" : "Select brand first"} />
+                        <SelectValue placeholder={"Select model"} />
                       </SelectTrigger>
                       <SelectContent>
                         <div className="p-2 border-b">
                           <div className="relative">
-                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
                               placeholder="Search model..."
                               value={modelSearch}
