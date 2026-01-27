@@ -71,8 +71,8 @@ export function TechnicianSalaryCalculator() {
                 const jobSheetPromises = statuses.map(status =>
                     crmApi.jobSheet.getAll({
                         status: status,
-                        fromDate: format(start, "yyyy-MM-dd"),
-                        toDate: format(end, "yyyy-MM-dd"),
+                        completedFromDate: format(start, "yyyy-MM-dd"),
+                        completedToDate: format(end, "yyyy-MM-dd"),
                         limit: -1, // Get all results
                     })
                 );
@@ -414,7 +414,11 @@ export function TechnicianSalaryCalculator() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        {job.createdOn ? format(parseISO(job.createdOn), "dd MMM yyyy") : "--"}
+                                                        {job.completedOn
+                                                            ? format(parseISO(job.completedOn), "dd MMM yyyy")
+                                                            : job.createdOn
+                                                                ? format(parseISO(job.createdOn), "dd MMM yyyy")
+                                                                : "--"}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge

@@ -13,6 +13,8 @@ export interface JobSheetQueryParams extends QueryParams {
   assignedTo?: number;
   fromDate?: string;
   toDate?: string;
+  completedFromDate?: string;
+  completedToDate?: string;
 }
 
 export const jobSheetApi = {

@@ -6,12 +6,15 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { Plus, User, Laptop, DollarSign, FileText, Upload, X, ArrowLeft, Loader2, CheckCircle2, Search } from "lucide-react";
 import { ScrollArea } from "../../ui/scroll-area";
 import { crmApi } from "../../../api";
 import { ClientDto, TechnicianDto, BrandDto, ComplaintDto, TrayDto, JobSheetDto, SalesPersonDto, VendorDto } from "../../../dtos";
 import { toast } from "sonner";
+import { createRoot } from "react-dom/client";
+import { PrintBill } from "../../PrintBill";
 
 interface AddJobSheetProps {
   onBack: () => void;
@@ -34,7 +37,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     brandId: "",
     color: "",
     serialNumber: "",
-    complaintId: "",
+    complaintIds: [] as string[],
     problemsIdentified: "",
     trayId: "",
     receivedFrom: "",
@@ -196,7 +199,9 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         brandId: jobSheet.brand?.id.toString() || "",
         color: jobSheet.color || "",
         serialNumber: jobSheet.serialNumber || "",
-        complaintId: jobSheet.complaint?.id.toString() || "",
+        complaintIds: Array.isArray(jobSheet.complaints)
+          ? jobSheet.complaints.map(c => c.id.toString())
+          : [],
         problemsIdentified: jobSheet.problemsIdentified || "",
         trayId: jobSheet.tray?.id.toString() || "",
         receivedFrom: jobSheet.receivedFrom || "",
@@ -247,7 +252,9 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       console.log("✅ Form data set:", {
         clientId: jobSheet.client?.id.toString(),
         brandId: jobSheet.brand?.id.toString(),
-        complaintId: jobSheet.complaint?.id.toString(),
+        complaintIds: Array.isArray(jobSheet.complaints)
+          ? jobSheet.complaints.map(c => c.id.toString())
+          : [],
         trayId: jobSheet.tray?.id.toString(),
         serviceType: jobSheet.serviceType,
         deviceType: jobSheet.deviceType,
@@ -385,7 +392,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     isEmailValid(technicianFormData.email);
 
   // Validation for main job sheet form
-  const canSaveJobSheet = formData.clientId && formData.serviceType && formData.deviceType && formData.brandId && formData.complaintId && formData.trayId && formData.receivedById && formData.serialNumber.trim() !== "";
+  const canSaveJobSheet = formData.clientId && formData.serviceType && formData.deviceType && formData.brandId && formData.complaintIds.length > 0 && formData.trayId && formData.receivedById && formData.serialNumber.trim() !== "";
 
   // Handle create/update job sheet
   const handleSaveJobSheet = async () => {
@@ -410,6 +417,10 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         }
       }
 
+      const selectedComplaints = complaints.filter(c =>
+        formData.complaintIds.includes(c.id.toString())
+      );
+
       const jobSheetData: any = {
         client: parseInt(formData.clientId),
         serviceType: formData.serviceType,
@@ -417,7 +428,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         brand: parseInt(formData.brandId),
         color: formData.color,
         serialNumber: formData.serialNumber,
-        complaint: parseInt(formData.complaintId),
+        complaints: selectedComplaints.map(c => c.id),
         problemsIdentified: formData.problemsIdentified || undefined,
         tray: parseInt(formData.trayId),
         receivedFrom: formData.receivedFrom || undefined,
@@ -497,14 +508,128 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       if (isEditMode && jobSheetId) {
         await crmApi.jobSheet.update(parseInt(jobSheetId), jobSheetData);
         toast.success("Job sheet updated successfully");
+        await fetchAllData();
+        onBack();
       } else {
-        await crmApi.jobSheet.create(jobSheetData);
+        const response = await crmApi.jobSheet.create(jobSheetData);
+        const createdJob = response.data.data as JobSheetDto;
         toast.success("Job sheet created successfully");
-      }
 
-      // Refresh trays to show updated status
-      await fetchAllData();
-      onBack();
+        // Auto-open print bill for newly created job
+        if (createdJob) {
+          const jobDataForPrint = {
+            id: createdJob.id,
+            jobNo: createdJob.id,
+            serialNumber: createdJob.serialNumber,
+            date: createdJob.createdOn
+              ? createdJob.createdOn.split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            customerName: createdJob.client.name,
+            customerAddress: createdJob.client.address,
+            customerPhone: createdJob.client.phone,
+            customerEmail: createdJob.client.email,
+            model: createdJob.brand.model,
+            brand: createdJob.brand.brand,
+            color: createdJob.color,
+            complaints: Array.isArray(createdJob.complaints)
+              ? createdJob.complaints.map(c => c.description).join(", ")
+              : "",
+            problemIdentified: createdJob.problemsIdentified,
+            status: createdJob.status,
+            advancePaid: createdJob.amountPaid,
+          };
+
+          const existingContainer = document.getElementById(
+            "temp-print-created-bill"
+          );
+          if (existingContainer) {
+            existingContainer.remove();
+          }
+
+          const printContainer = document.createElement("div");
+          printContainer.id = "temp-print-created-bill";
+          printContainer.style.position = "fixed";
+          printContainer.style.left = "-9999px";
+          printContainer.style.top = "-9999px";
+          printContainer.style.width = "100%";
+          printContainer.style.height = "100%";
+          printContainer.style.zIndex = "99999";
+          printContainer.style.backgroundColor = "white";
+          printContainer.style.overflow = "auto";
+          printContainer.style.visibility = "hidden";
+          document.body.appendChild(printContainer);
+
+          let styleElement = document.getElementById(
+            "print-created-bill-styles"
+          );
+          if (!styleElement) {
+            styleElement = document.createElement("style");
+            styleElement.id = "print-created-bill-styles";
+            document.head.appendChild(styleElement);
+          }
+          styleElement.textContent = `
+            #temp-print-created-bill {
+              position: fixed !important;
+              left: -9999px !important;
+              top: -9999px !important;
+              visibility: hidden !important;
+            }
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #temp-print-created-bill,
+              #temp-print-created-bill * {
+                visibility: visible !important;
+              }
+              #temp-print-created-bill {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: white !important;
+              }
+              .no-print {
+                display: none !important;
+                visibility: hidden !important;
+              }
+              .print-content {
+                visibility: visible !important;
+              }
+              .print-page {
+                page-break-after: auto;
+                page-break-inside: avoid;
+              }
+              @page {
+                size: A4;
+                margin: 0.5in;
+              }
+            }
+          `;
+
+          const root = createRoot(printContainer);
+          root.render(<PrintBill jobData={jobDataForPrint} />);
+
+          setTimeout(() => {
+            const printContent =
+              printContainer.querySelector(".print-content");
+            if (printContent) {
+              window.print();
+            }
+            setTimeout(() => {
+              root.unmount();
+              if (printContainer.parentNode) {
+                printContainer.parentNode.removeChild(printContainer);
+              }
+              onBack();
+            }, 800);
+          }, 800);
+        } else {
+          await fetchAllData();
+          onBack();
+        }
+      }
     } catch (error) {
       toast.error(`Failed to ${isEditMode ? 'update' : 'create'} job sheet`);
       console.error(error);
@@ -570,7 +695,13 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     try {
       const newComplaint = await crmApi.complaint.create(complaintFormData);
       await fetchAllData();
-      setFormData({ ...formData, complaintId: newComplaint.data.data?.id.toString() || "" });
+      setFormData(prev => ({
+        ...prev,
+        complaintIds: [
+          ...prev.complaintIds,
+          newComplaint.data.data?.id.toString() || "",
+        ].filter(Boolean),
+      }));
       setIsComplaintDialogOpen(false);
       setComplaintFormData({ description: "" });
       toast.success("Complaint added successfully");
@@ -738,10 +869,10 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                         <SelectValue placeholder="Select device type" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Laptop">Laptop</SelectItem>
                         <SelectItem value="UPS">UPS</SelectItem>
                         <SelectItem value="Projector">Projector</SelectItem>
                         <SelectItem value="Desktop">Desktop</SelectItem>
-                        <SelectItem value="Laptop">Laptop</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -903,14 +1034,22 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 <div className="space-y-2">
                   <Label htmlFor="complaints" className="text-gray-700">Complaints *</Label>
                   <div className="flex gap-2">
-                    <Select
-                      value={formData.complaintId}
-                      onValueChange={(value) => setFormData({ ...formData, complaintId: value })}
-                    >
-                      <SelectTrigger id="complaints" className="rounded-xl border-gray-200 flex-1">
-                        <SelectValue placeholder="Select complaint" />
-                      </SelectTrigger>
-                      <SelectContent>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-xl border-gray-200 flex-1 justify-between"
+                        >
+                          <span className={formData.complaintIds.length === 0 ? "text-gray-400" : ""}>
+                            {formData.complaintIds.length === 0
+                              ? "Select complaints"
+                              : `${formData.complaintIds.length} complaint${formData.complaintIds.length > 1 ? "s" : ""} selected`}
+                          </span>
+                          <Search className="w-4 h-4 text-gray-400 ml-2" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] p-0" align="start">
                         <div className="p-2 border-b">
                           <div className="relative">
                             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -924,19 +1063,40 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                             />
                           </div>
                         </div>
-                        <div className="max-h-[200px] overflow-y-auto">
+                        <div className="max-h-[220px] overflow-y-auto">
                           {filteredComplaints.length > 0 ? (
-                            filteredComplaints.map((complaint) => (
-                              <SelectItem key={complaint.id} value={complaint.id.toString()}>
-                                {complaint.description}
-                              </SelectItem>
-                            ))
+                            filteredComplaints.map((complaint) => {
+                              const id = complaint.id.toString();
+                              const selected = formData.complaintIds.includes(id);
+                              return (
+                                <button
+                                  key={complaint.id}
+                                  type="button"
+                                  className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${
+                                    selected ? "bg-blue-50" : ""
+                                  }`}
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      complaintIds: selected
+                                        ? prev.complaintIds.filter(cid => cid !== id)
+                                        : [...prev.complaintIds, id],
+                                    }));
+                                  }}
+                                >
+                                  <span>{complaint.description}</span>
+                                  {selected && <span className="text-xs text-blue-600">Selected</span>}
+                                </button>
+                              );
+                            })
                           ) : (
-                            <div className="px-2 py-6 text-sm text-center text-gray-500">No complaints found</div>
+                            <div className="px-2 py-6 text-sm text-center text-gray-500">
+                              No complaints found
+                            </div>
                           )}
                         </div>
-                      </SelectContent>
-                    </Select>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       variant="outline"
                       size="icon"

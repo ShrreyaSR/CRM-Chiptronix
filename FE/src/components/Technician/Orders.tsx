@@ -746,7 +746,9 @@ export function TechnicianOrders() {
                   <div>
                     <Label className="text-gray-600 text-xs">Complaints</Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.complaint.description}
+                      {Array.isArray(selectedJobSheet.complaints)
+                        ? selectedJobSheet.complaints.map(c => c.description).join(", ")
+                        : ""}
                     </p>
                   </div>
                   <div>

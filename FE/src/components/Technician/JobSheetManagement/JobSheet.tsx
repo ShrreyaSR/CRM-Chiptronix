@@ -953,9 +953,15 @@ export function TechnicianJobSheet() {
                         <TableCell className="max-w-[250px]">
                           <div
                             className="text-gray-700 line-clamp-2"
-                            title={job.complaint.description}
+                            title={
+                              Array.isArray(job.complaints)
+                                ? job.complaints.map(c => c.description).join(", ")
+                                : ""
+                            }
                           >
-                            {job.complaint.description}
+                            {Array.isArray(job.complaints)
+                              ? job.complaints.map(c => c.description).join(", ")
+                              : ""}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">

@@ -6,6 +6,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { Plus, User, Laptop, DollarSign, FileText, Upload, X, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "../../ui/scroll-area";
@@ -34,7 +35,7 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     brandId: "",
     color: "",
     serialNumber: "",
-    complaintId: "",
+    complaintIds: [] as string[],
     problemsIdentified: "",
     trayId: "",
     receivedFrom: "",
@@ -187,7 +188,9 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         brandId: jobSheet.brand?.id.toString() || "",
         color: jobSheet.color || "",
         serialNumber: jobSheet.serialNumber || "",
-        complaintId: jobSheet.complaint?.id.toString() || "",
+        complaintIds: Array.isArray(jobSheet.complaints)
+          ? jobSheet.complaints.map(c => c.id.toString())
+          : [],
         problemsIdentified: jobSheet.problemsIdentified || "",
         trayId: jobSheet.tray?.id.toString() || "",
         receivedFrom: jobSheet.receivedFrom || "",
@@ -238,7 +241,9 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
       console.log("✅ Form data set:", {
         clientId: jobSheet.client?.id.toString(),
         brandId: jobSheet.brand?.id.toString(),
-        complaintId: jobSheet.complaint?.id.toString(),
+        complaintIds: Array.isArray(jobSheet.complaints)
+          ? jobSheet.complaints.map(c => c.id.toString())
+          : [],
         trayId: jobSheet.tray?.id.toString(),
         serviceType: jobSheet.serviceType,
         deviceType: jobSheet.deviceType,
@@ -320,12 +325,16 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
 
   // Handle create/update job sheet
   const handleSaveJobSheet = async () => {
-    if (!formData.clientId || !formData.serviceType || !formData.deviceType || !formData.complaintId || !formData.receivedById) {
+    if (!formData.clientId || !formData.serviceType || !formData.deviceType || formData.complaintIds.length === 0 || !formData.receivedById) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     try {
+      const selectedComplaints = complaints.filter(c =>
+        formData.complaintIds.includes(c.id.toString())
+      );
+
       const jobSheetData: any = {
         client: parseInt(formData.clientId),
         serviceType: formData.serviceType,
@@ -333,7 +342,7 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         brand: parseInt(formData.brandId),
         color: formData.color,
         serialNumber: formData.serialNumber,
-        complaint: parseInt(formData.complaintId),
+        complaints: selectedComplaints.map(c => c.id),
         problemsIdentified: formData.problemsIdentified || undefined,
         tray: parseInt(formData.trayId),
         receivedFrom: formData.receivedFrom || undefined,
@@ -435,7 +444,13 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     try {
       const newComplaint = await crmApi.complaint.create(complaintFormData);
       await fetchAllData();
-      setFormData({ ...formData, complaintId: newComplaint.data.data?.id.toString() || "" });
+      setFormData(prev => ({
+        ...prev,
+        complaintIds: [
+          ...prev.complaintIds,
+          newComplaint.data.data?.id.toString() || "",
+        ].filter(Boolean),
+      }));
       setIsComplaintDialogOpen(false);
       setComplaintFormData({ description: "" });
       toast.success("Complaint added successfully");
@@ -697,21 +712,59 @@ export function TechnicianAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                 <div className="space-y-2">
                   <Label htmlFor="complaints" className="text-gray-700">Complaints *</Label>
                   <div className="flex gap-2">
-                  <Select
-                      value={formData.complaintId}
-                      onValueChange={(value) => setFormData({ ...formData, complaintId: value })}
-                  >
-                      <SelectTrigger id="complaints" className="rounded-xl border-gray-200 flex-1">
-                      <SelectValue placeholder="Select complaint" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {complaints.map((complaint) => (
-                          <SelectItem key={complaint.id} value={complaint.id.toString()}>
-                            {complaint.description}
-                          </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-xl border-gray-200 flex-1 justify-between"
+                        >
+                          <span className={formData.complaintIds.length === 0 ? "text-gray-400" : ""}>
+                            {formData.complaintIds.length === 0
+                              ? "Select complaints"
+                              : `${formData.complaintIds.length} complaint${formData.complaintIds.length > 1 ? "s" : ""} selected`}
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[320px] p-0" align="start">
+                        <div className="max-h-[220px] overflow-y-auto">
+                          {complaints.length > 0 ? (
+                            complaints.map((complaint) => {
+                              const id = complaint.id.toString();
+                              const selected = formData.complaintIds.includes(id);
+                              return (
+                                <button
+                                  key={complaint.id}
+                                  type="button"
+                                  className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${
+                                    selected ? "bg-blue-50" : ""
+                                  }`}
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      complaintIds: selected
+                                        ? prev.complaintIds.filter(cid => cid !== id)
+                                        : [...prev.complaintIds, id],
+                                    }));
+                                  }}
+                                >
+                                  <span>{complaint.description}</span>
+                                  {selected && (
+                                    <span className="text-xs text-blue-600">
+                                      Selected
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="px-2 py-6 text-sm text-center text-gray-500">
+                              No complaints found
+                            </div>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       variant="outline"
                       size="icon"

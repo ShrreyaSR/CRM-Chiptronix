@@ -3,7 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
   CreateDateColumn,
 } from "typeorm";
 import { Client } from "./Client";
@@ -38,9 +40,9 @@ export class JobSheet {
   @Column({ type: "varchar" })
   serialNumber: string | undefined;
 
-  @ManyToOne(() => Complaint, { eager: true })
-  @JoinColumn()
-  complaint: Complaint | undefined;
+  @ManyToMany(() => Complaint, { eager: true })
+  @JoinTable()
+  complaints: Complaint[] | undefined;
 
   @Column({ type: "text", nullable: true })
   problemsIdentified: string | undefined;
@@ -71,6 +73,9 @@ export class JobSheet {
 
   @Column({ type: "varchar", default: "Pending" })
   status: string | undefined;
+
+  @Column({ type: "timestamp", nullable: true })
+  completedOn: Date | undefined;
 
   @CreateDateColumn({ name: "createdOn" })
   createdOn: Date | undefined;

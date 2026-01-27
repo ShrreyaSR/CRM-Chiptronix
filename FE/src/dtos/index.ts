@@ -27,7 +27,7 @@ export interface JobSheetDto {
   brand: BrandDto;
   color: string;
   serialNumber: string;
-  complaint: ComplaintDto;
+  complaints: ComplaintDto[];
   problemsIdentified?: string;
   tray: TrayDto;
   receivedFrom?: string;
@@ -38,6 +38,7 @@ export interface JobSheetDto {
   picture?: string; 
   status: "Pending" | "In Progress" | "Completed" | "Delivered" | "Waiting for Spares" | "Waiting for Customer Reply" | "Not Repairable" | "Repair Declined" | "Not Repairable - Delivered" | "Repair Declined - Delivered" | "Paid";
   createdOn: string;
+  completedOn?: string;
   spares?: SparesDto;
   totalAmount?: number;
   fixSummary?: string;

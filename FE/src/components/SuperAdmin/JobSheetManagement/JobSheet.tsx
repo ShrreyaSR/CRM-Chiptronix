@@ -445,7 +445,9 @@ export function SuperAdminJobSheet() {
       model: jobSheet.brand.model,
       brand: jobSheet.brand.brand,
       color: jobSheet.color,
-      complaints: jobSheet.complaint.description,
+      complaints: Array.isArray(jobSheet.complaints)
+        ? jobSheet.complaints.map(c => c.description).join(", ")
+        : "",
       problemIdentified: jobSheet.problemsIdentified,
       status: jobSheet.status,
       advancePaid: jobSheet.amountPaid,
@@ -1204,9 +1206,15 @@ export function SuperAdminJobSheet() {
                         >
                           <div
                             className="text-gray-700 line-clamp-2 min-w-0"
-                            title={job.complaint.description}
+                            title={
+                              Array.isArray(job.complaints)
+                                ? job.complaints.map(c => c.description).join(", ")
+                                : ""
+                            }
                           >
-                            {job.complaint.description}
+                            {Array.isArray(job.complaints)
+                              ? job.complaints.map(c => c.description).join(", ")
+                              : ""}
                           </div>
                         </TableCell>
                         <TableCell
@@ -1560,7 +1568,9 @@ export function SuperAdminJobSheet() {
                   <div>
                     <Label className="text-gray-600 text-xs">Complaints</Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.complaint.description}
+                      {Array.isArray(selectedJobSheet.complaints)
+                        ? selectedJobSheet.complaints.map(c => c.description).join(", ")
+                        : ""}
                     </p>
                   </div>
                   <div>

@@ -5,6 +5,7 @@ import { AppDataSource } from "../config/data-source";
 import { Spares } from "../entities/Spares";
 import { SalesPerson } from "../entities/SalesPerson";
 import { Vendor } from "../entities/Vendor";
+import { Complaint } from "../entities/Complaint";
 
 export class JobSheetService {
   private repo = JobSheetRepository;
@@ -17,6 +18,8 @@ export class JobSheetService {
       client,
       fromDate,
       toDate,
+      completedFromDate,
+      completedToDate,
       sortField,
       sortOrder,
       page,
@@ -29,7 +32,7 @@ export class JobSheetService {
       .createQueryBuilder("job")
       .leftJoinAndSelect("job.client", "client")
       .leftJoinAndSelect("job.brand", "brand")
-      .leftJoinAndSelect("job.complaint", "complaint")
+      .leftJoinAndSelect("job.complaints", "complaint")
       .leftJoinAndSelect("job.tray", "tray")
       .leftJoinAndSelect("job.assignedTo", "assignedTo")
       .leftJoinAndSelect("job.receivedBy", "receivedBy")
@@ -78,6 +81,21 @@ export class JobSheetService {
       });
     }
 
+    if (completedFromDate && completedToDate) {
+      qb.andWhere(`job."completedOn" BETWEEN :cfrom AND :cto`, {
+        cfrom: `${completedFromDate} 00:00:00`,
+        cto: `${completedToDate} 23:59:59`,
+      });
+    } else if (completedFromDate) {
+      qb.andWhere(`job."completedOn" >= :cfrom`, {
+        cfrom: `${completedFromDate} 00:00:00`,
+      });
+    } else if (completedToDate) {
+      qb.andWhere(`job."completedOn" <= :cto`, {
+        cto: `${completedToDate} 23:59:59`,
+      });
+    }
+
     const skip = (page - 1) * limit;
 
     qb.orderBy(`job.${sortField}`, sortOrder);
@@ -108,7 +126,7 @@ export class JobSheetService {
       .createQueryBuilder("job")
       .leftJoinAndSelect("job.client", "client")
       .leftJoinAndSelect("job.brand", "brand")
-      .leftJoinAndSelect("job.complaint", "complaint")
+      .leftJoinAndSelect("job.complaints", "complaint")
       .leftJoinAndSelect("job.tray", "tray")
       .leftJoinAndSelect("job.assignedTo", "assignedTo")
       .leftJoinAndSelect("job.receivedBy", "receivedBy")
@@ -125,7 +143,18 @@ export class JobSheetService {
   }
 
   async createJob(data: any) {
-    const job = this.repo.create(data);
+    const { complaints, ...jobSheetData } = data;
+
+    let complaintEntities: Complaint[] | undefined;
+    if (Array.isArray(complaints) && complaints.length > 0) {
+      const complaintRepo = AppDataSource.getRepository(Complaint);
+      complaintEntities = await complaintRepo.findByIds(complaints as number[]);
+    }
+
+    const job = this.repo.create({
+      ...jobSheetData,
+      complaints: complaintEntities,
+    });
     const saved = await this.repo.save(job) as any;
     logger.info("Job sheet created", { jobId: saved?.id });
     return saved;
@@ -134,11 +163,29 @@ export class JobSheetService {
   async updateJob(id: number, data: any) {
     const existingJob = await this.getJobById(id); // Throws if not found
     
-    // Handle spares separately if provided
-    const { spares, ...jobSheetData } = data;
+    // Handle spares and complaints separately if provided
+    const { spares, complaints, ...jobSheetData } = data;
+
+    const previousStatus = existingJob.status;
+    const newStatus = jobSheetData.status ?? previousStatus;
+    const isCompletedLike = (status?: string) =>
+      status === "Completed" ||
+      status === "Delivered" ||
+      status === "Not Repairable" ||
+      status === "Repair Declined" ||
+      status === "Not Repairable - Delivered" ||
+      status === "Repair Declined - Delivered" ||
+      status === "Paid";
+
+    if (!isCompletedLike(previousStatus) && isCompletedLike(newStatus)) {
+      (jobSheetData as any).completedOn = new Date();
+    }
     
     const sparesRepository = AppDataSource.getRepository(Spares);
     let sparesEntity: Spares | null = null;
+
+    const complaintRepository = AppDataSource.getRepository(Complaint);
+    let complaintEntities: Complaint[] | undefined;
     
     // Process spares if provided
     if (spares !== undefined) {
@@ -194,10 +241,24 @@ export class JobSheetService {
         }
       }
     }
-    
+
+    // Process complaints if provided (array of ids)
+    if (complaints !== undefined) {
+      if (Array.isArray(complaints) && complaints.length > 0) {
+        complaintEntities = await complaintRepository.findByIds(complaints as number[]);
+      } else {
+        complaintEntities = [];
+      }
+    }
+
     // If spares was processed, add it to jobSheetData
     if (spares !== undefined) {
       jobSheetData.spares = sparesEntity;
+    }
+
+    // If complaints were processed, add them to jobSheetData
+    if (complaints !== undefined) {
+      jobSheetData.complaints = complaintEntities;
     }
     
     // Update job sheet - use save() to handle relations properly
