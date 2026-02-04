@@ -1586,7 +1586,7 @@ export function SuperAdminJobSheet() {
                       Fix Summary
                     </Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.problemsIdentified}
+                      {selectedJobSheet.fixSummary}
                     </p>
                   </div>}
                 </div>
