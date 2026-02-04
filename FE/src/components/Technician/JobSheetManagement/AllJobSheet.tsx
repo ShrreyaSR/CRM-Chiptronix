@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect, SetStateAction } from "react";
+import React, { useState, useEffect, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -11,7 +10,6 @@ import {
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { Textarea } from "../../ui/textarea";
 import {
   Select,
   SelectContent,
@@ -23,10 +21,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import {
@@ -39,102 +35,44 @@ import {
 } from "../../ui/table";
 import { Badge } from "../../ui/badge";
 import {
-  Plus,
   Search,
   FileText,
   User,
   Laptop,
-  DollarSign,
-  Filter,
-  Eye,
-  Edit,
   Clock,
   CheckCircle2,
   AlertCircle,
-  Upload,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  IndianRupeeIcon,
   X,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  Printer,
-  Barcode,
-  Package,
-  IndianRupeeIcon,
   Layers,
+  Filter,
+  Eye,
 } from "lucide-react";
-import { ScrollArea } from "../../ui/scroll-area";
 import { Calendar } from "../../ui/calendar";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "../../ui/pagination";
-import { Separator } from "../../ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../../ui/dropdown-menu";
-import { JobSheetBill } from "../../JobSheetBill";
-import { SerialNumberBarcode } from "../../SerialNumberBarcode";
 import { crmApi } from "../../../api";
-import { useAuth } from "../../../contexts/AuthContext";
 import {
   JobSheetDto,
   ClientDto,
-  TrayDto,
-  BrandDto,
-  ComplaintDto,
   TechnicianDto,
   jobSheetResDto,
-  SalesPersonDto,
-  VendorDto,
 } from "../../../dtos";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../ui/alert-dialog";
 import { toast } from "sonner";
 
-export function TechnicianJobSheet() {
+export function TechnicianAllJobSheet() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const technicianId = user?.id;
   const [jobSheets, setJobSheets] = useState<JobSheetDto[]>([]);
+  const [allJobSheets, setAllJobSheets] = useState<JobSheetDto[]>([]);
   const [clients, setClients] = useState<ClientDto[]>([]);
+  const [technicians, setTechnician] = useState<TechnicianDto[]>([]);
   const [selectedJobSheet, setSelectedJobSheet] = useState<JobSheetDto>();
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
-  const [salesPersons, setSalesPersons] = useState<SalesPersonDto[]>([]);
-  const [vendors, setVendors] = useState<VendorDto[]>([]);
-  
-  // Order/Spare form data
-  const [orderFormData, setOrderFormData] = useState({
-    product: "",
-    description: "",
-    amount: "",
-    billNumber: "",
-    status: "Requested" as "Requested" | "Approved" | "Purchase Initiated" | "Purchased" | "Delivered to Technician",
-    salesPersonId: "",
-    vendorId: "",
-  });
-
-  // Status update dialog state (same pattern as SuperAdmin)
-  const [statusUpdateDialog, setStatusUpdateDialog] = useState<{
-    open: boolean;
-    jobId: number | null;
-    newStatus: string | null;
-  }>({ open: false, jobId: null, newStatus: null });
-
-  const [statusFormData, setStatusFormData] = useState({
-    totalAmount: "",
-    fixSummary: "",
-    amountPaid: "",
-  });
 
   const [jobSheetRes, setJobSheetsRes] = useState<jobSheetResDto>({
     items: [],
@@ -146,77 +84,78 @@ export function TechnicianJobSheet() {
 
   useEffect(() => {
     fetchData();
-    fetchOrderData();
+    fetchAllJobSheets();
   }, []);
-
-  const fetchOrderData = async () => {
-    try {
-      const [salesPersonsRes, vendorsRes] = await Promise.all([
-        crmApi.salesPerson.getAll({}),
-        crmApi.vendor.getAll({}),
-      ]);
-      setSalesPersons(salesPersonsRes.data.data || []);
-      setVendors(vendorsRes.data.data || []);
-    } catch (error) {
-      console.error("Failed to load order data:", error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      if (!technicianId) return;
-      const jobSheetParams = {
-        ...params,
-        client:
-          filterClient !== "all" && !isNaN(Number(filterClient))
-            ? Number(filterClient)
-            : undefined,
-        assignedTo: technicianId,
-      };
-
-      const [jobRes, clientRes] = await Promise.all([
-        crmApi.jobSheet.getAll(jobSheetParams),
-        crmApi.client.getAll({}),
-      ]);
-      setJobSheets(jobRes.data.items || []);
-      setClients(clientRes.data.data || []);
-      setJobSheetsRes(jobRes.data);
-    } catch (err) {
-      console.error("Error loading dto:", err);
-    }
-  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClient, setFilterClient] = useState<string>("all");
+  const [filterTechnician, setFilterTechnician] = useState<string>("all");
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
   }>({ from: undefined, to: undefined });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Sorting state
   const [sortField, setSortField] = useState<keyof JobSheetDto | "">("");
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-      const params = {
-      search: searchTerm || "",
-      status: filterStatus !== "all" ? filterStatus : "",
-      client: filterClient !== "all" ? filterClient : "",
-      // always scoped to logged-in technician
-      assignedTo: technicianId ? technicianId.toString() : "",
-      fromDate: dateRange.from
-        ? dateRange.from.toISOString().split("T")[0]
-        : "",
-      toDate: dateRange.to ? dateRange.to.toISOString().split("T")[0] : "",
-      sortField,
-      sortOrder: sortDirection,
-      page: currentPage,
-      limit: itemsPerPage,
-    };
+
+  const params = {
+    search: searchTerm || "",
+    status: filterStatus !== "all" ? filterStatus : "",
+    client: filterClient !== "all" ? filterClient : "",
+    assignedTo: filterTechnician !== "all" ? filterTechnician : "",
+    fromDate: dateRange.from
+      ? dateRange.from.toISOString().split("T")[0]
+      : "",
+    toDate: dateRange.to ? dateRange.to.toISOString().split("T")[0] : "",
+    sortField,
+    sortOrder: sortDirection,
+    page: currentPage,
+    limit: itemsPerPage,
+  };
+
+  const fetchData = async () => {
+    try {
+      const jobSheetParams = {
+        ...params,
+        client:
+          filterClient !== "all" && !isNaN(Number(filterClient))
+            ? Number(filterClient)
+            : undefined,
+        assignedTo:
+          filterTechnician !== "all" && !isNaN(Number(filterTechnician))
+            ? Number(filterTechnician)
+            : undefined,
+      };
+
+      const [jobRes, clientRes, technicianRes] = await Promise.all([
+        crmApi.jobSheet.getAll(jobSheetParams),
+        crmApi.client.getAll({}),
+        crmApi.technician.getAll({}),
+      ]);
+      setJobSheets(jobRes.data.items || []);
+      setClients(clientRes.data.data || []);
+      setTechnician(technicianRes.data.data ?? []);
+      setJobSheetsRes(jobRes.data);
+    } catch (err) {
+      console.error("Error loading jobs:", err);
+    }
+  };
+
+  async function fetchAllJobSheets() {
+    try {
+      const res = await crmApi.jobSheet.getAll({
+        limit: -1,
+      });
+      setAllJobSheets(res.data.items || []);
+    } catch (error) {
+      console.error("Error fetching all job sheets:", error);
+    }
+  }
 
   useEffect(() => {
     fetchJobSheets();
@@ -224,12 +163,34 @@ export function TechnicianJobSheet() {
     searchTerm,
     filterStatus,
     filterClient,
-    // scoped by logged-in technician, so no technician filter dependency
+    filterTechnician,
     JSON.stringify(dateRange),
     sortField,
     sortDirection,
     currentPage,
   ]);
+
+  async function fetchJobSheets() {
+    const fixedParams = {
+      ...params,
+      client:
+        typeof params.client === "string"
+          ? params.client === ""
+            ? undefined
+            : Number(params.client)
+          : params.client,
+      assignedTo:
+        typeof params.assignedTo === "string"
+          ? params.assignedTo === ""
+            ? undefined
+            : Number(params.assignedTo)
+          : params.assignedTo,
+    };
+
+    const res = await crmApi.jobSheet.getAll(fixedParams);
+    setJobSheets(res.data.items);
+    setJobSheetsRes(res.data);
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -249,6 +210,10 @@ export function TechnicianJobSheet() {
         return "bg-gray-100 text-gray-700 border-gray-200";
       case "Repair Declined":
         return "bg-gray-100 text-gray-700 border-gray-200";
+      case "Not Repairable - Delivered":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "Repair Declined - Delivered":
+        return "bg-orange-100 text-orange-700 border-orange-200";
       case "Paid":
         return "bg-green-100 text-green-700 border-green-200";
       default:
@@ -256,7 +221,6 @@ export function TechnicianJobSheet() {
     }
   };
 
-  // Sorting function
   const handleSort = (field: keyof JobSheetDto) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "ASC" ? "DESC" : "ASC");
@@ -278,234 +242,48 @@ export function TechnicianJobSheet() {
     );
   };
 
-  const fetchJobSheets = async () => {
-    if (!technicianId) return;
-    // Convert client and assignedTo to numbers if needed, ensuring proper types for JobSheetQueryParams
-    const fixedParams = {
-      ...params,
-      client:
-        typeof params.client === "string"
-          ? params.client === ""
-            ? undefined
-            : Number(params.client)
-          : params.client,
-      assignedTo: technicianId,
-    };
+  const resetPagination = () => setCurrentPage(1);
 
-    const res = await crmApi.jobSheet.getAll(fixedParams);
-
-    setJobSheets(res.data.items);
-    setJobSheetsRes(res.data);
+  const stats = {
+    total: allJobSheets.length,
+    pending: allJobSheets.filter((j) => j.status === "Pending").length,
+    inProgress: allJobSheets.filter((j) => j.status === "In Progress").length,
+    completed: allJobSheets.filter((j) => j.status === "Completed").length,
+    delivered: allJobSheets.filter((j) =>
+      j.status === "Delivered" ||
+      j.status === "Not Repairable - Delivered" ||
+      j.status === "Repair Declined - Delivered"
+    ).length,
+    waiting: allJobSheets.filter((j) =>
+      j.status === "Waiting for Spares" ||
+      j.status === "Waiting for Customer Reply"
+    ).length,
+    paid: allJobSheets.filter((j) => j.status === "Paid").length,
+    notRepairable: allJobSheets.filter((j) => j.status === "Not Repairable").length,
+    repairDeclined: allJobSheets.filter((j) => j.status === "Repair Declined").length,
   };
 
-  // Handle create spare order
-  const handleCreateOrder = async () => {
-    if (!selectedJobSheet?.id) return;
-
-    if (!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId || !orderFormData.vendorId) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+  const handleAssignedToUpdate = async (jobId: number, technicianId: number | null) => {
     try {
-      const updateData: any = {
-        status: "Waiting for Spares" as const,
-        spares: {
-          product: orderFormData.product,
-          description: orderFormData.description,
-          amount: orderFormData.amount || undefined,
-          billNumber: orderFormData.billNumber || undefined,
-          status: orderFormData.status,
-          salesPerson: parseInt(orderFormData.salesPersonId),
-          vendor: parseInt(orderFormData.vendorId),
-        },
-      };
-
-      await crmApi.jobSheet.update(Number(selectedJobSheet.id), updateData);
-      toast.success("Spare order created successfully");
-      
-      // Reset form and close dialog
-      setOrderFormData({
-        product: "",
-        description: "",
-        amount: "",
-        billNumber: "",
-        status: "Requested",
-        salesPersonId: "",
-        vendorId: "",
+      await crmApi.jobSheet.update(jobId, {
+        assignedTo: technicianId as any,
       });
-      setIsOrderDialogOpen(false);
-      
-      // Refresh job sheets and update selected job sheet
-      await fetchJobSheets();
-      
-      // Fetch updated job sheet data
-      try {
-        const response = await crmApi.jobSheet.getById(Number(selectedJobSheet.id));
-        setSelectedJobSheet(response.data.data!);
-      } catch (error) {
-        console.error("Failed to refresh job sheet:", error);
-      }
-    } catch (error) {
-      console.error("Failed to create order:", error);
-      toast.error("Failed to create spare order");
-    }
-  };
-
-  // Helper to check delivered-like and paid statuses
-  const isDeliveredLikeStatus = (status: string): boolean => {
-    return (
-      status === "Delivered" ||
-      status === "Not Repairable - Delivered" ||
-      status === "Repair Declined - Delivered"
-    );
-  };
-
-  // Core status update function (without dialogs)
-  const updateJobSheetStatus = async (
-    jobId: number,
-    newStatus: string,
-    totalAmount?: number,
-    fixSummary?: string,
-    amountPaid?: number
-  ) => {
-    try {
-      const updateData: any = {
-        status: newStatus as
-          | "Pending"
-          | "In Progress"
-          | "Completed"
-          | "Waiting for Spares"
-          | "Waiting for Customer Reply"
-          | "Not Repairable"
-          | "Repair Declined",
-      };
-
-      if (totalAmount !== undefined) {
-        updateData.totalAmount = totalAmount;
-      }
-      if (fixSummary !== undefined) {
-        updateData.fixSummary = fixSummary;
-      }
-      if (amountPaid !== undefined) {
-        updateData.amountPaid = amountPaid;
-      }
-
-      await crmApi.jobSheet.update(jobId, updateData);
-      toast.success("Status updated successfully");
+      toast.success("Assigned technician updated successfully");
       fetchJobSheets();
+      fetchAllJobSheets();
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Failed to update assigned technician");
       console.error(error);
     }
   };
 
-  // Handler to trigger status changes with dialogs (mirrors SuperAdmin behavior)
-  const handleStatusUpdate = (jobId: number, newStatus: string) => {
-    if (isDeliveredLikeStatus(newStatus) || newStatus === "Paid") {
-      toast.error("You cannot move a job to a delivered or paid status.");
-      return;
-    }
-
-    if (newStatus === "Completed" || newStatus === "Not Repairable" || newStatus === "Repair Declined") {
-      // Open dialog for total amount and summary
-      setStatusUpdateDialog({ open: true, jobId, newStatus });
-      setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
-    } else if (newStatus === "Waiting for Spares") {
-      // For Waiting for Spares, open the spare order dialog
-      const currentJob = jobSheets.find(j => Number(j.id) === jobId);
-      if (currentJob) {
-        setSelectedJobSheet(currentJob);
-      }
-      setIsOrderDialogOpen(true);
-    } else {
-      // For other statuses, update directly
-      updateJobSheetStatus(jobId, newStatus);
-    }
-  };
-
-  // Submit handler for status dialog (same fields as SuperAdmin)
-  const handleStatusDialogSubmit = async () => {
-    if (!statusUpdateDialog.jobId || !statusUpdateDialog.newStatus) return;
-
-    const { jobId, newStatus } = statusUpdateDialog;
-
-    if (newStatus === "Completed" || newStatus === "Not Repairable" || newStatus === "Repair Declined") {
-      const totalAmount = statusFormData.totalAmount ? parseFloat(statusFormData.totalAmount) : undefined;
-      const fixSummary = statusFormData.fixSummary.trim() || undefined;
-
-      if (!totalAmount) {
-        toast.error("Please enter total amount");
-        return;
-      }
-
-      await updateJobSheetStatus(jobId, newStatus, totalAmount, fixSummary);
-    } else if (newStatus === "Paid") {
-      const amountPaid = statusFormData.amountPaid ? parseFloat(statusFormData.amountPaid) : undefined;
-
-      if (!amountPaid) {
-        toast.error("Please enter amount paid");
-        return;
-      }
-
-      await updateJobSheetStatus(jobId, newStatus, undefined, undefined, amountPaid);
-    }
-
-    // Close dialog and reset form
-    setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
-    setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
-  };
-
-  // Reset to first page when filters change
-  const resetPagination = () => setCurrentPage(1);
-
-  const stats = {
-    total: jobSheets.length,
-    pending: jobSheets.filter((j) => j.status === "Pending").length,
-    inProgress: jobSheets.filter((j) => j.status === "In Progress").length,
-    completed: jobSheets.filter((j) => j.status === "Completed").length,
-    delivered: jobSheets.filter((j) =>
-      isDeliveredLikeStatus(j.status)
-    ).length,
-    waitingSpares: jobSheets.filter((j) => j.status === "Waiting for Spares")
-      .length,
-    waitingCustomer: jobSheets.filter(
-      (j) => j.status === "Waiting for Customer Reply"
-    ).length,
-  };
-
-
-
-  function DeleteDialog({ open, onClose, onConfirm }: any) {
-  return (
-    <AlertDialog open={open} onOpenChange={onClose}>
-      <AlertDialogContent className="rounded-2xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete the job sheet.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-500 text-white">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-
   return (
     <div className="space-y-6">
-      {/* Modern Stats Cards */}
+      {/* Stats */}
       <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4 ">
+        <div className="flex gap-4">
           <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-blue-100 text-xs">
                 Total Jobs
@@ -523,7 +301,7 @@ export function TechnicianJobSheet() {
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[180px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-amber-100 text-xs">
                 Pending
@@ -541,7 +319,7 @@ export function TechnicianJobSheet() {
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-purple-100 text-xs">
                 In Progress
@@ -559,7 +337,7 @@ export function TechnicianJobSheet() {
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-green-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-emerald-100 text-xs">
                 Completed
@@ -577,7 +355,7 @@ export function TechnicianJobSheet() {
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-teal-500 to-cyan-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-teal-100 text-xs">
                 Delivered
@@ -589,66 +367,103 @@ export function TechnicianJobSheet() {
             <CardContent className="relative z-10 pb-3">
               <div className="flex items-center gap-1.5 text-teal-100">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-xs">Closed</span>
+                <span className="text-xs">All delivered</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-lg bg-gradient-to-br from-rose-500 to-pink-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
               <CardDescription className="text-rose-100 text-xs">
-                Waiting Spares
+                Waiting
               </CardDescription>
               <CardTitle className="text-white text-2xl">
-                {stats.waitingSpares}
+                {stats.waiting}
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10 pb-3">
               <div className="flex items-center gap-1.5 text-rose-100">
                 <Package className="w-3.5 h-3.5" />
-                <span className="text-xs">Parts needed</span>
+                <span className="text-xs">On hold</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
             <CardHeader className="pb-2 relative z-10">
-              <CardDescription className="text-violet-100 text-xs">
-                Waiting Customer
+              <CardDescription className="text-green-100 text-xs">
+                Paid
               </CardDescription>
               <CardTitle className="text-white text-2xl">
-                {stats.waitingCustomer}
+                {stats.paid}
               </CardTitle>
             </CardHeader>
             <CardContent className="relative z-10 pb-3">
-              <div className="flex items-center gap-1.5 text-violet-100">
-                <User className="w-3.5 h-3.5" />
-                <span className="text-xs">On hold</span>
+              <div className="flex items-center gap-1.5 text-green-100">
+                <IndianRupeeIcon className="w-3.5 h-3.5" />
+                <span className="text-xs">Payment done</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-red-500 to-rose-500 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
+            <CardHeader className="pb-2 relative z-10">
+              <CardDescription className="text-red-100 text-xs">
+                Not Repairable
+              </CardDescription>
+              <CardTitle className="text-white text-2xl">
+                {stats.notRepairable}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 pb-3">
+              <div className="flex items-center gap-1.5 text-red-100">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="text-xs">Cannot repair</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-amber-600 text-white overflow-hidden relative group hover:shadow-xl transition-all min-w-[170px] flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
+            <CardHeader className="pb-2 relative z-10">
+              <CardDescription className="text-orange-100 text-xs">
+                Repair Declined
+              </CardDescription>
+              <CardTitle className="text-white text-2xl">
+                {stats.repairDeclined}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative z-10 pb-3">
+              <div className="flex items-center gap-1.5 text-orange-100">
+                <X className="w-3.5 h-3.5" />
+                <span className="text-xs">Declined</span>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Job Sheet Table */}
+      {/* Table Card */}
       <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-xl overflow-hidden">
         <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-white to-blue-50/30">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-gray-900 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
-                Job Sheets
+                All Job Sheets
               </CardTitle>
               <CardDescription className="mt-1">
-                Manage and track all repair job sheets
+                View all job sheets and assign technicians
               </CardDescription>
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="pt-2 px-6 pb-6">
-          {/* Search Bar */}
+          {/* Search and filters copied from SuperAdmin layout */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -663,9 +478,8 @@ export function TechnicianJobSheet() {
               />
             </div>
 
-            {/* Advanced Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Date Range Filter */}
+              {/* Date range */}
               <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                 <PopoverTrigger asChild>
                   <Button
@@ -713,7 +527,7 @@ export function TechnicianJobSheet() {
                         mode="single"
                         selected={dateRange.from}
                         onSelect={(date) => {
-                          setDateRange(prev => ({ ...prev, from: date }));
+                          setDateRange((prev) => ({ ...prev, from: date }));
                           resetPagination();
                         }}
                         initialFocus
@@ -739,10 +553,12 @@ export function TechnicianJobSheet() {
                         mode="single"
                         selected={dateRange.to}
                         onSelect={(date) => {
-                          setDateRange(prev => ({ ...prev, to: date }));
+                          setDateRange((prev) => ({ ...prev, to: date }));
                           resetPagination();
                         }}
-                        disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                        disabled={(date) =>
+                          dateRange.from ? date < dateRange.from : false
+                        }
                       />
                     </div>
                   </div>
@@ -790,6 +606,28 @@ export function TechnicianJobSheet() {
                 </SelectContent>
               </Select>
 
+              {/* Technician Filter */}
+              <Select
+                value={filterTechnician}
+                onValueChange={(value: SetStateAction<string>) => {
+                  setFilterTechnician(value);
+                  resetPagination();
+                }}
+              >
+                <SelectTrigger className="h-11 rounded-xl border-gray-200 bg-gray-50/50">
+                  <User className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filter by Technician" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Technicians</SelectItem>
+                  {technicians.map((tech) => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                      {tech.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               {/* Status Filter */}
               <Select
                 value={filterStatus}
@@ -816,14 +654,21 @@ export function TechnicianJobSheet() {
                   </SelectItem>
                   <SelectItem value="Not Repairable">Not Repairable</SelectItem>
                   <SelectItem value="Repair Declined">Repair Declined</SelectItem>
+                  <SelectItem value="Not Repairable - Delivered">
+                    Not Repairable - Delivered
+                  </SelectItem>
+                  <SelectItem value="Repair Declined - Delivered">
+                    Repair Declined - Delivered
+                  </SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Active Filters Display */}
+            {/* Active Filters */}
             {(filterStatus !== "all" ||
               filterClient !== "all" ||
+              filterTechnician !== "all" ||
               dateRange.from) && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-gray-600">Active Filters:</span>
@@ -855,6 +700,20 @@ export function TechnicianJobSheet() {
                     </button>
                   </Badge>
                 )}
+                {filterTechnician !== "all" && (
+                  <Badge variant="secondary" className="rounded-full">
+                    Technician: {filterTechnician}
+                    <button
+                      onClick={() => {
+                        setFilterTechnician("all");
+                        resetPagination();
+                      }}
+                      className="ml-2"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                )}
                 {dateRange.from && (
                   <Badge variant="secondary" className="rounded-full">
                     Date Range
@@ -875,6 +734,7 @@ export function TechnicianJobSheet() {
                   onClick={() => {
                     setFilterStatus("all");
                     setFilterClient("all");
+                    setFilterTechnician("all");
                     setDateRange({ from: undefined, to: undefined });
                     resetPagination();
                   }}
@@ -889,13 +749,13 @@ export function TechnicianJobSheet() {
           {/* Table */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
             <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative custom-scrollbar">
-              <Table className="w-full">
-              <TableHeader className="bg-gradient-to-r from-gray-50 to-blue-50/30 sticky top-0 z-10 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gray-200">
+              <Table className="w-full" style={{ tableLayout: "fixed" }}>
+                <TableHeader className="bg-gradient-to-r from-gray-50 to-blue-50/30 sticky top-0 z-10 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gray-200">
                   <TableRow className="hover:bg-transparent">
                     <TableHead
                       className="text-gray-700 cursor-pointer group w-[120px] max-w-[120px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("id")}
-                      style={{ width: '50px', maxWidth: '150px' }}
+                      style={{ width: "50px", maxWidth: "150px" }}
                     >
                       <div className="flex items-center truncate">
                         Job
@@ -905,7 +765,7 @@ export function TechnicianJobSheet() {
                     <TableHead
                       className="text-gray-700 cursor-pointer group w-[100px] max-w-[100px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("client")}
-                      style={{ width: '100px', maxWidth: '120px' }}
+                      style={{ width: "100px", maxWidth: "120px" }}
                     >
                       <div className="flex items-center truncate">
                         Client
@@ -914,27 +774,24 @@ export function TechnicianJobSheet() {
                     </TableHead>
                     <TableHead
                       className="text-gray-700 w-[200px] max-w-[200px] whitespace-nowrap overflow-hidden"
-                      style={{ width: '100px', maxWidth: '100px' }}
+                      style={{ width: "100px", maxWidth: "100px" }}
                     >
                       <div className="flex items-center truncate">
                         Device
-
                       </div>
-
                     </TableHead>
                     <TableHead
                       className="text-gray-700 w-[300px] max-w-[300px] overflow-hidden"
-                      style={{ width: '370px', maxWidth: '370px' }}
+                      style={{ width: "250px", maxWidth: "250px" }}
                     >
                       <div className="flex items-center truncate">
                         Complaints
-
                       </div>
                     </TableHead>
                     <TableHead
                       className="text-gray-700 cursor-pointer group w-[180px] max-w-[180px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("status")}
-                      style={{ width: '120px', maxWidth: '180px' }}
+                      style={{ width: "120px", maxWidth: "180px" }}
                     >
                       <div className="flex items-center truncate">
                         Status
@@ -944,7 +801,7 @@ export function TechnicianJobSheet() {
                     <TableHead
                       className="text-gray-700 cursor-pointer group w-[130px] max-w-[130px] whitespace-nowrap overflow-hidden"
                       onClick={() => handleSort("createdOn")}
-                      style={{ width: '80px', maxWidth: '100px' }}
+                      style={{ width: "80px", maxWidth: "100px" }}
                     >
                       <div className="flex items-center truncate">
                         Created On
@@ -952,15 +809,24 @@ export function TechnicianJobSheet() {
                       </div>
                     </TableHead>
                     <TableHead
+                      className="text-gray-700 cursor-pointer group w-[160px] max-w-[160px] whitespace-nowrap overflow-hidden"
+                      onClick={() => handleSort("assignedTo")}
+                      style={{ width: "120px", maxWidth: "120px" }}
+                    >
+                      <div className="flex items-center truncate">
+                        Assigned To
+                        {getSortIcon("assignedTo")}
+                      </div>
+                    </TableHead>
+                    <TableHead
                       className="text-gray-700 w-[100px] max-w-[100px] whitespace-nowrap overflow-hidden"
-                      style={{ width: '30px', maxWidth: '50px' }}
+                      style={{ width: "30px", maxWidth: "50px" }}
                     >
                       Tray
                     </TableHead>
-
                     <TableHead
                       className="text-gray-700 text-right w-[150px] max-w-[150px] whitespace-nowrap overflow-hidden"
-                      style={{ width: '120px', maxWidth: '150px' }}
+                      style={{ width: "120px", maxWidth: "150px" }}
                     >
                       Action
                     </TableHead>
@@ -970,7 +836,7 @@ export function TechnicianJobSheet() {
                   {jobSheetRes.total === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={11}
+                        colSpan={9}
                         className="text-center py-12 text-gray-500"
                       >
                         No job sheets found
@@ -984,7 +850,11 @@ export function TechnicianJobSheet() {
                       >
                         <TableCell
                           className="text-blue-600 whitespace-nowrap overflow-hidden"
-                          style={{ width: '120px', maxWidth: '120px', minWidth: '120px' }}
+                          style={{
+                            width: "120px",
+                            maxWidth: "120px",
+                            minWidth: "120px",
+                          }}
                         >
                           <div className="truncate" title={String(job.id)}>
                             #{job.id}
@@ -992,80 +862,155 @@ export function TechnicianJobSheet() {
                         </TableCell>
                         <TableCell
                           className="whitespace-nowrap overflow-hidden"
-                          style={{ width: '150px', maxWidth: '150px', minWidth: '150px' }}
+                          style={{
+                            width: "150px",
+                            maxWidth: "150px",
+                            minWidth: "150px",
+                          }}
                         >
-                          <div className="text-gray-900 truncate min-w-0" title={job.client.name}>
+                          <div
+                            className="text-gray-900 truncate min-w-0"
+                            title={job.client.name}
+                          >
                             {job.client.name}
                           </div>
                         </TableCell>
                         <TableCell
                           className="whitespace-nowrap overflow-hidden"
-                          style={{ width: '100px', maxWidth: '100px', minWidth: '100px' }}
+                          style={{
+                            width: "100px",
+                            maxWidth: "100px",
+                            minWidth: "100px",
+                          }}
                         >
                           <div className="min-w-0">
-                            <div className="text-gray-900 truncate min-w-0" title={`${job.brand.brand} ${job.brand.model}`}>
+                            <div
+                              className="text-gray-900 truncate min-w-0"
+                              title={`${job.brand.brand} ${job.brand.model}`}
+                            >
                               {job.brand.brand} {job.brand.model}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell
                           className="overflow-hidden"
-                          style={{ width: '150px', maxWidth: '150px', minWidth: '150px' }}
+                          style={{
+                            width: "150px",
+                            maxWidth: "150px",
+                            minWidth: "150px",
+                          }}
                         >
                           <div
                             className="text-gray-700 line-clamp-2 min-w-0"
                             title={
                               Array.isArray(job.complaints)
-                                ? job.complaints.map(c => c.description).join(", ")
+                                ? job.complaints
+                                    .map((c) => c.description)
+                                    .join(", ")
                                 : ""
                             }
                           >
                             {Array.isArray(job.complaints)
-                              ? job.complaints.map(c => c.description).join(", ")
+                              ? job.complaints
+                                  .map((c) => c.description)
+                                  .join(", ")
                               : ""}
                           </div>
                         </TableCell>
                         <TableCell
                           className="whitespace-nowrap overflow-hidden"
-                          style={{ width: '180px', maxWidth: '180px', minWidth: '180px' }}
+                          style={{
+                            width: "180px",
+                            maxWidth: "180px",
+                            minWidth: "180px",
+                          }}
                         >
-                                                    <div className="flex justify-end">
-
-                          <Select
-                            value={job.status}
-                            onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
-                          >
-                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
-                              <Badge
-                                className={`${getStatusColor(
-                                  job.status
-                                )} border rounded-lg px-3 py-1 cursor-pointer w-full justify-center`}
-                              >
-                                {job.status}
-                              </Badge>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Pending">Pending</SelectItem>
-                              <SelectItem value="In Progress">In Progress</SelectItem>
-                              <SelectItem value="Completed">Completed</SelectItem>
-                              <SelectItem value="Waiting for Spares">Waiting for Spares</SelectItem>
-                              <SelectItem value="Waiting for Customer Reply">Waiting for Customer Reply</SelectItem>
-                              <SelectItem value="Not Repairable">Not Repairable</SelectItem>
-                              <SelectItem value="Repair Declined">Repair Declined</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex justify-end">
+                            <Badge
+                              className={`${getStatusColor(
+                                job.status
+                              )} border rounded-lg px-3 py-1 truncate`}
+                              title={job.status}
+                            >
+                              {job.status}
+                            </Badge>
                           </div>
                         </TableCell>
-                        
-                        <TableCell className="whitespace-nowrap">
-                          <div className="text-sm text-gray-700">
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{
+                            width: "100px",
+                            maxWidth: "100px",
+                            minWidth: "100px",
+                          }}
+                        >
+                          <div
+                            className="text-sm text-gray-700 truncate min-w-0"
+                            title={job.createdOn.split("T")[0]}
+                          >
                             {job.createdOn.split("T")[0]}
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-700 whitespace-nowrap">
-                          {job.tray.trayNumber}
+                        <TableCell
+                          className="whitespace-nowrap overflow-hidden"
+                          style={{
+                            width: "160px",
+                            maxWidth: "160px",
+                            minWidth: "160px",
+                          }}
+                        >
+                          <Select
+                            value={job.assignedTo?.id?.toString() || "none"}
+                            onValueChange={(value) => {
+                              const techId =
+                                value === "none" ? null : Number(value);
+                              handleAssignedToUpdate(Number(job.id), techId);
+                            }}
+                          >
+                            <SelectTrigger className="w-full max-w-full h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg">
+                              <div
+                                className="text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-sm truncate min-w-0"
+                                title={job.assignedTo?.name || "Not assigned"}
+                              >
+                                {job.assignedTo?.name || "Not assigned"}
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Not assigned</SelectItem>
+                              {technicians.map((tech) => (
+                                <SelectItem
+                                  key={tech.id}
+                                  value={tech.id.toString()}
+                                >
+                                  {tech.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                        <TableCell
+                          className="text-gray-700 whitespace-nowrap overflow-hidden"
+                          style={{
+                            width: "50px",
+                            maxWidth: "50px",
+                            minWidth: "50px",
+                          }}
+                        >
+                          <div
+                            className="truncate min-w-0"
+                            title={job.tray.trayNumber}
+                          >
+                            {job.tray.trayNumber}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="text-right whitespace-nowrap overflow-hidden"
+                          style={{
+                            width: "150px",
+                            maxWidth: "150px",
+                            minWidth: "150px",
+                          }}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1086,7 +1031,6 @@ export function TechnicianJobSheet() {
                 </TableBody>
               </Table>
             </div>
-            {/* Scroll hint */}
             <div className="bg-gradient-to-t from-blue-50/50 to-transparent py-2.5 px-4 flex items-center justify-center gap-2 text-xs text-gray-400 border-t border-gray-100">
               <svg
                 className="w-3.5 h-3.5 animate-pulse"
@@ -1187,6 +1131,7 @@ export function TechnicianJobSheet() {
         </CardContent>
       </Card>
 
+      {/* View dialog (read-only, same as SuperAdmin but without edit/print/delete) */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
@@ -1201,7 +1146,6 @@ export function TechnicianJobSheet() {
 
           {selectedJobSheet && (
             <div className="space-y-6 py-4">
-              {/* Status Badge */}
               <div className="flex items-center justify-between pb-4 border-b">
                 <Badge
                   className={`${getStatusColor(
@@ -1215,7 +1159,7 @@ export function TechnicianJobSheet() {
                 </div>
               </div>
 
-              {/* Client Information */}
+              {/* Client info */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 space-y-3">
                 <div className="flex items-center gap-2 text-blue-700 pb-2 border-b border-blue-200">
                   <User className="w-5 h-5" />
@@ -1252,8 +1196,7 @@ export function TechnicianJobSheet() {
                       {selectedJobSheet.receivedBy.name}
                     </p>
                   </div>
-                  
-                    <div>
+                  <div>
                     <Label className="text-gray-600 text-xs">
                       Assigned to (Technician)
                     </Label>
@@ -1261,17 +1204,16 @@ export function TechnicianJobSheet() {
                       {selectedJobSheet.assignedTo?.name || "N/A"}
                     </p>
                   </div>
-                  
                 </div>
               </div>
 
-              {/* Device Information */}
+              {/* Device info */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 space-y-3">
                 <div className="flex items-center gap-2 text-purple-700 pb-2 border-b border-purple-200">
                   <Laptop className="w-5 h-5" />
                   <h3 className="font-semibold">Device Information</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-600 text-xs">Brand</Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
@@ -1317,7 +1259,7 @@ export function TechnicianJobSheet() {
                 </div>
               </div>
 
-              {/* Issues and Problems */}
+              {/* Issues */}
               <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 space-y-3">
                 <div className="flex items-center gap-2 text-orange-700 pb-2 border-b border-orange-200">
                   <AlertCircle className="w-5 h-5" />
@@ -1327,9 +1269,11 @@ export function TechnicianJobSheet() {
                   <div>
                     <Label className="text-gray-600 text-xs">Complaints</Label>
                     <p className="text-gray-900 mt-1 text-sm font-medium">
-                    {Array.isArray(selectedJobSheet.complaints)
-                      ? selectedJobSheet.complaints.map(c => c.description).join(", ")
-                      : ""}
+                      {Array.isArray(selectedJobSheet.complaints)
+                        ? selectedJobSheet.complaints
+                            .map((c) => c.description)
+                            .join(", ")
+                        : ""}
                     </p>
                   </div>
                   <div>
@@ -1340,24 +1284,26 @@ export function TechnicianJobSheet() {
                       {selectedJobSheet.problemsIdentified}
                     </p>
                   </div>
-                  {selectedJobSheet.fixSummary && <div>
-                    <Label className="text-gray-600 text-xs">
-                      Fix Summary
-                    </Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.fixSummary}
-                    </p>
-                  </div>}
+                  {selectedJobSheet.fixSummary && (
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Fix Summary
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.fixSummary}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Financial & Logistics */}
+              {/* Financial */}
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 space-y-3">
                 <div className="flex items-center gap-2 text-green-700 pb-2 border-b border-green-200">
                   <IndianRupeeIcon className="w-5 h-5" />
                   <h3 className="font-semibold">Financial & Logistics</h3>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-gray-600 text-xs">
                       Estimate Amount
@@ -1380,331 +1326,69 @@ export function TechnicianJobSheet() {
                       {selectedJobSheet.tray.trayNumber}
                     </p>
                   </div>
-                  {selectedJobSheet.totalAmount && <div>
-                    <Label className="text-gray-600 text-xs">Total Amount</Label>
-                    <p className="text-gray-900 mt-1 text-lg font-medium">
-                      {selectedJobSheet.totalAmount}
-                    </p>
-                  </div>}
+                  {selectedJobSheet.totalAmount && (
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Total Amount
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-lg font-medium">
+                        {selectedJobSheet.totalAmount}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Spares */}
-              {selectedJobSheet.spares &&
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 space-y-3">
-                <div className="flex items-center gap-2 text-purple-700 pb-2 border-b border-purple-200">
-                  <Layers className="w-5 h-5" />
-                  <h3 className="font-semibold">Spare Parts</h3>
+              {selectedJobSheet.spares && (
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-purple-700 pb-2 border-b border-purple-200">
+                    <Layers className="w-5 h-5" />
+                    <h3 className="font-semibold">Spare Parts</h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-gray-600 text-xs">Product</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.product}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">Amount</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.amount || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Bill Number
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.billNumber || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">
+                        Sales Person
+                      </Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.salesPerson.name || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-600 text-xs">Vendor</Label>
+                      <p className="text-gray-900 mt-1 text-sm font-medium">
+                        {selectedJobSheet.spares?.vendor?.name || "N/A"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-gray-600 text-xs">
-                      Product
-                    </Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.product}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">
-                      Amount
-                    </Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.amount || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Bill Number</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.billNumber || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Sales Person</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.salesPerson.name || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600 text-xs">Vendor</Label>
-                    <p className="text-gray-900 mt-1 text-sm font-medium">
-                      {selectedJobSheet.spares?.vendor?.name || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-8 pt-4 border-t">
-                <Button
-                  onClick={() => {
-                    setIsViewDialogOpen(false);
-                    setIsOrderDialogOpen(true);
-                  }}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex-1 sm:flex-none"
-                  disabled={!!selectedJobSheet?.spares}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  {selectedJobSheet?.spares ? "Order Already Added" : "Add Spare Order"}
-                </Button>
-
-              </div>
+              )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Spare Order Dialog */}
-      <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent className="max-w-3xl rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Package className="w-6 h-6 text-green-600" />
-              Create Spare Parts Order
-            </DialogTitle>
-            <DialogDescription>
-              Add spare parts order for Job Sheet #{selectedJobSheet?.id}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2">
-                <Label htmlFor="product">Product *</Label>
-                <Input
-                  id="product"
-                  value={orderFormData.product}
-                  onChange={(e) => setOrderFormData({ ...orderFormData, product: e.target.value })}
-                  placeholder="Enter product name"
-                  className="rounded-xl border-gray-200 mt-1"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={orderFormData.description}
-                  onChange={(e) => setOrderFormData({ ...orderFormData, description: e.target.value })}
-                  placeholder="Enter product description"
-                  rows={3}
-                  className="rounded-xl border-gray-200 mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="salesPerson">Sales Person *</Label>
-                <Select
-                  value={orderFormData.salesPersonId}
-                  onValueChange={(value) => setOrderFormData({ ...orderFormData, salesPersonId: value })}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 mt-1">
-                    <SelectValue placeholder="Select sales person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salesPersons.map((sp) => (
-                      <SelectItem key={sp.id} value={sp.id.toString()}>
-                        {sp.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="vendor">Vendor *</Label>
-                <Select
-                  value={orderFormData.vendorId}
-                  onValueChange={(value) => setOrderFormData({ ...orderFormData, vendorId: value })}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 mt-1">
-                    <SelectValue placeholder="Select vendor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendors.map((v) => (
-                      <SelectItem key={v.id} value={v.id.toString()}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="amount">Amount (₹)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={orderFormData.amount}
-                  onChange={(e) => setOrderFormData({ ...orderFormData, amount: e.target.value })}
-                  placeholder="Enter amount"
-                  className="rounded-xl border-gray-200 mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="billNumber">Bill Number</Label>
-                <Input
-                  id="billNumber"
-                  value={orderFormData.billNumber}
-                  onChange={(e) => setOrderFormData({ ...orderFormData, billNumber: e.target.value })}
-                  placeholder="Enter bill number"
-                  className="rounded-xl border-gray-200 mt-1"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={orderFormData.status}
-                  onValueChange={(value: any) => setOrderFormData({ ...orderFormData, status: value })}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Requested">Requested</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Purchase Initiated">Purchase Initiated</SelectItem>
-                    <SelectItem value="Purchased">Purchased</SelectItem>
-                    <SelectItem value="Delivered to Technician">Delivered to Technician</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsOrderDialogOpen(false);
-                  setOrderFormData({
-                    product: "",
-                    description: "",
-                    amount: "",
-                    billNumber: "",
-                    status: "Requested",
-                    salesPersonId: "",
-                    vendorId: "",
-                  });
-                }}
-                className="rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateOrder}
-                disabled={!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId || !orderFormData.vendorId}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl"
-              >
-                Create Order
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Status Update Dialog (same UX as SuperAdmin) */}
-      <Dialog
-        open={statusUpdateDialog.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
-            setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-2xl rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900">
-              {statusUpdateDialog.newStatus === "Paid"
-                ? "Enter Payment Information"
-                : `Update Status to ${statusUpdateDialog.newStatus}`}
-            </DialogTitle>
-            <DialogDescription>
-              {statusUpdateDialog.newStatus === "Paid"
-                ? "Enter the amount paid for this job sheet"
-                : "Enter total amount and fix summary for this job sheet"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 gap-4 py-4">
-            {statusUpdateDialog.newStatus === "Paid" ? (
-              <div className="space-y-2">
-                <Label htmlFor="amountPaid" className="text-gray-700">
-                  Amount Paid (₹) *
-                </Label>
-                <Input
-                  id="amountPaid"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter amount paid"
-                  value={statusFormData.amountPaid}
-                  onChange={(e) =>
-                    setStatusFormData({ ...statusFormData, amountPaid: e.target.value })
-                  }
-                  className="rounded-xl border-gray-200"
-                />
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="totalAmount" className="text-gray-700">
-                    Total Amount (₹) *
-                  </Label>
-                  <Input
-                    id="totalAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter total amount"
-                    value={statusFormData.totalAmount}
-                    onChange={(e) =>
-                      setStatusFormData({ ...statusFormData, totalAmount: e.target.value })
-                    }
-                    className="rounded-xl border-gray-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fixSummary" className="text-gray-700">
-                    Fix Summary
-                  </Label>
-                  <Textarea
-                    id="fixSummary"
-                    placeholder="Enter fix summary (optional)"
-                    rows={4}
-                    value={statusFormData.fixSummary}
-                    onChange={(e) =>
-                      setStatusFormData({ ...statusFormData, fixSummary: e.target.value })
-                    }
-                    className="rounded-xl border-gray-200 resize-none"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setStatusUpdateDialog({ open: false, jobId: null, newStatus: null });
-                setStatusFormData({ totalAmount: "", fixSummary: "", amountPaid: "" });
-              }}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleStatusDialogSubmit}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl"
-            >
-              Update Status
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+

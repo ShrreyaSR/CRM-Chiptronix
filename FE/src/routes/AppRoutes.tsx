@@ -29,8 +29,8 @@ import { AdminSalesPerson } from "../components/Admin/SalesPerson";
 
 // Technician Components
 import { TechnicianJobSheet } from "../components/Technician/JobSheetManagement/JobSheet";
+import { TechnicianAllJobSheet } from "../components/Technician/JobSheetManagement/AllJobSheet";
 import { TechnicianOrders } from "../components/Technician/Orders";
-import { TechnicianAddJobSheet } from "../components/Technician/JobSheetManagement/AddJobSheet";
 
 // Client Components
 import { ClientJobSheet } from "../components/Client/JobSheet";
@@ -47,13 +47,6 @@ import { SalesOrders } from "../components/Sales/Orders";
     return <SuperAdminAddJobSheet onBack={() => navigate("/super-admin/jobsheet")} jobSheetId={jobSheetId} />;
   }
 
-  function TechnicianAddJobSheetWrapper() {
-    const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const jobSheetId = searchParams.get("edit") || undefined;
-
-    return <TechnicianAddJobSheet onBack={() => navigate("/technician/jobsheet")} jobSheetId={jobSheetId} />;
-  }
 
 export default function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -123,8 +116,9 @@ export default function AppRoutes() {
       >
         <Route path="" element={<TechnicianJobSheet />} />
         <Route path="jobsheet" element={<TechnicianJobSheet />} />
+        <Route path="all-jobsheets" element={<TechnicianAllJobSheet />} />
         <Route path="orders" element={<TechnicianOrders />} />
-        <Route path="add-jobsheet" element={<TechnicianAddJobSheetWrapper />} />
+      
       </Route>
 
       {/* Client/Dealer Dashboard */}

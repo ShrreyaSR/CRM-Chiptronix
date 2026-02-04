@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../ui/utils";
-import { Cpu, LogOut, ClipboardList, Package } from "lucide-react";
+import { Cpu, LogOut, ClipboardList, Package, Layers } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Tooltip,
@@ -20,6 +20,7 @@ export default function TechnicianLayout() {
 
   const menuItems = [
     { id: "jobsheet", label: "Job Sheet", icon: ClipboardList, path: "/technician/jobsheet" },
+    { id: "all-jobsheets", label: "All Job Sheets", icon: Layers, path: "/technician/all-jobsheets" },
     { id: "orders", label: "Orders", icon: Package, path: "/technician/orders" },
   ];
 
