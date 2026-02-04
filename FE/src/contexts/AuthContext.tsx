@@ -112,7 +112,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
 
         // Navigate to appropriate dashboard
-        window.location.href = `/${role === "super-admin" ? "super-admin" : role}`;
+        const targetPath =
+          role === "super-admin"
+            ? "/super-admin"
+            : role === "dealer"
+            ? "/client"
+            : `/${role}`;
+        window.location.href = targetPath;
       } else {
         throw new Error(response.error?.message || "Login failed");
       }
