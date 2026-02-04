@@ -242,7 +242,7 @@ export function TechnicianOrders() {
   const handleCreateOrder = async () => {
     if (!selectedJobSheet?.id) return;
 
-    if (!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId || !orderFormData.vendorId) {
+    if (!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -942,7 +942,7 @@ export function TechnicianOrders() {
               </div>
 
               <div>
-                <Label htmlFor="vendor">Vendor *</Label>
+                <Label htmlFor="vendor">Vendor</Label>
                 <Select
                   value={orderFormData.vendorId}
                   onValueChange={(value) => setOrderFormData({ ...orderFormData, vendorId: value })}
@@ -1024,7 +1024,7 @@ export function TechnicianOrders() {
               </Button>
               <Button
                 onClick={handleCreateOrder}
-                disabled={!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId || !orderFormData.vendorId}
+                disabled={!orderFormData.product || !orderFormData.description || !orderFormData.salesPersonId}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl"
               >
                 Create Order
