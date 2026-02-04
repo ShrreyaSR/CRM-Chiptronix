@@ -8,6 +8,18 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[]; // Optional: allow multiple roles (super-admin can access all)
 }
 
+// Helper function to map user roles to their dashboard paths
+const getDashboardPath = (role: UserRole): string => {
+  const roleToPath: Record<UserRole, string> = {
+    "super-admin": "/super-admin",
+    "admin": "/admin",
+    "technician": "/technician",
+    "sales": "/sales",
+    "dealer": "/client", // Dealer role maps to /client route
+  };
+  return roleToPath[role] || "/login";
+};
+
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
@@ -32,7 +44,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Super-admin can access all routes (but we still need to check if accessing super-admin route)
   if (requiredRole === "super-admin" && user.role !== "super-admin") {
     // Non super-admin trying to access super-admin routes
-    const dashboardPath = `/${user.role === "super-admin" ? "super-admin" : user.role}`;
+    const dashboardPath = getDashboardPath(user.role);
     return <Navigate to={dashboardPath} replace />;
   }
 
@@ -40,7 +52,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const rolesToCheck = allowedRoles || [requiredRole];
   if (!rolesToCheck.includes(user.role)) {
     // User doesn't have access, redirect to their own dashboard
-    const dashboardPath = `/${user.role === "super-admin" ? "super-admin" : user.role}`;
+    const dashboardPath = getDashboardPath(user.role);
     return <Navigate to={dashboardPath} replace />;
   }
 

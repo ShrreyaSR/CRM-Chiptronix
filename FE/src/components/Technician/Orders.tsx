@@ -982,25 +982,6 @@ export function TechnicianOrders() {
                   className="rounded-xl border-gray-200 mt-1"
                 />
               </div>
-
-              <div className="col-span-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={orderFormData.status}
-                  onValueChange={(value: any) => setOrderFormData({ ...orderFormData, status: value })}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Requested">Requested</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Purchase Initiated">Purchase Initiated</SelectItem>
-                    <SelectItem value="Purchased">Purchased</SelectItem>
-                    <SelectItem value="Delivered to Technician">Delivered to Technician</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">

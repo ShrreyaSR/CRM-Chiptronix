@@ -105,6 +105,7 @@ export function TechnicianJobSheet() {
   const { user } = useAuth();
   const technicianId = user?.id;
   const [jobSheets, setJobSheets] = useState<JobSheetDto[]>([]);
+  const [statsJobSheets, setStatsJobSheets] = useState<JobSheetDto[]>([]);
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [selectedJobSheet, setSelectedJobSheet] = useState<JobSheetDto>();
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -145,9 +146,10 @@ export function TechnicianJobSheet() {
   });
 
   useEffect(() => {
-    fetchData();
+    fetchStatsData();
     fetchOrderData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [technicianId]);
 
   const fetchOrderData = async () => {
     try {
@@ -162,27 +164,18 @@ export function TechnicianJobSheet() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchStatsData = async () => {
     try {
       if (!technicianId) return;
-      const jobSheetParams = {
-        ...params,
-        client:
-          filterClient !== "all" && !isNaN(Number(filterClient))
-            ? Number(filterClient)
-            : undefined,
-        assignedTo: technicianId,
-      };
-
-      const [jobRes, clientRes] = await Promise.all([
-        crmApi.jobSheet.getAll(jobSheetParams),
+      // Fetch unfiltered data for stats (only assignedTo filter)
+      const [statsRes, clientRes] = await Promise.all([
+        crmApi.jobSheet.getAll({ assignedTo: technicianId, limit: -1 }),
         crmApi.client.getAll({}),
       ]);
-      setJobSheets(jobRes.data.items || []);
+      setStatsJobSheets(statsRes.data.items || []);
       setClients(clientRes.data.data || []);
-      setJobSheetsRes(jobRes.data);
     } catch (err) {
-      console.error("Error loading dto:", err);
+      console.error("Error loading stats data:", err);
     }
   };
 
@@ -338,6 +331,7 @@ export function TechnicianJobSheet() {
       
       // Refresh job sheets and update selected job sheet
       await fetchJobSheets();
+      await fetchStatsData();
       
       // Fetch updated job sheet data
       try {
@@ -394,6 +388,7 @@ export function TechnicianJobSheet() {
       await crmApi.jobSheet.update(jobId, updateData);
       toast.success("Status updated successfully");
       fetchJobSheets();
+      fetchStatsData();
     } catch (error) {
       toast.error("Failed to update status");
       console.error(error);
@@ -459,17 +454,75 @@ export function TechnicianJobSheet() {
   // Reset to first page when filters change
   const resetPagination = () => setCurrentPage(1);
 
+  // Helper function to get available status options based on current status
+  const getAvailableStatusOptions = (currentStatus: string): string[] => {
+    const allStatuses = [
+      "Pending",
+      "In Progress",
+      "Completed",
+      "Waiting for Spares",
+      "Waiting for Customer Reply",
+      "Not Repairable",
+      "Repair Declined",
+    ];
+
+    // Locked statuses that cannot be changed (final states)
+    const lockedStatuses = [
+      "Paid",
+      "Delivered",
+      "Not Repairable - Delivered",
+      "Repair Declined - Delivered",
+    ];
+
+    // If current status is a locked/final status -> No status change (return only current status)
+    if (lockedStatuses.includes(currentStatus) || isDeliveredLikeStatus(currentStatus)) {
+      return [currentStatus];
+    }
+
+    // If current status is "Pending" -> Show all statuses
+    if (currentStatus === "Pending") {
+      return allStatuses;
+    }
+
+    // If current status is "In Progress" -> Remove "Pending"
+    if (currentStatus === "In Progress") {
+      return allStatuses.filter((status) => status !== "Pending");
+    }
+
+    // If current status is "Completed", "Not Repairable", or "Repair Declined" -> No status change (return only current status)
+    if (
+      currentStatus === "Completed" ||
+      currentStatus === "Not Repairable" ||
+      currentStatus === "Repair Declined"
+    ) {
+      return [currentStatus];
+    }
+
+    // If current status is "Waiting for Spares" or "Waiting for Customer Reply" -> Remove "Pending" and "In Progress"
+    if (
+      currentStatus === "Waiting for Spares" ||
+      currentStatus === "Waiting for Customer Reply"
+    ) {
+      return allStatuses.filter(
+        (status) => status !== "Pending" && status !== "In Progress"
+      );
+    }
+
+    // Default: return all statuses
+    return allStatuses;
+  };
+
   const stats = {
-    total: jobSheets.length,
-    pending: jobSheets.filter((j) => j.status === "Pending").length,
-    inProgress: jobSheets.filter((j) => j.status === "In Progress").length,
-    completed: jobSheets.filter((j) => j.status === "Completed").length,
-    delivered: jobSheets.filter((j) =>
+    total: statsJobSheets.length,
+    pending: statsJobSheets.filter((j) => j.status === "Pending").length,
+    inProgress: statsJobSheets.filter((j) => j.status === "In Progress").length,
+    completed: statsJobSheets.filter((j) => j.status === "Completed").length,
+    delivered: statsJobSheets.filter((j) =>
       isDeliveredLikeStatus(j.status)
     ).length,
-    waitingSpares: jobSheets.filter((j) => j.status === "Waiting for Spares")
+    waitingSpares: statsJobSheets.filter((j) => j.status === "Waiting for Spares")
       .length,
-    waitingCustomer: jobSheets.filter(
+    waitingCustomer: statsJobSheets.filter(
       (j) => j.status === "Waiting for Customer Reply"
     ).length,
   };
@@ -1029,31 +1082,36 @@ export function TechnicianJobSheet() {
                           className="whitespace-nowrap overflow-hidden"
                           style={{ width: '180px', maxWidth: '180px', minWidth: '180px' }}
                         >
-                                                    <div className="flex justify-end">
+                          <div className="flex justify-end">
+                            {(() => {
+                              const availableStatuses = getAvailableStatusOptions(job.status);
+                              const isDisabled = availableStatuses.length === 1;
 
-                          <Select
-                            value={job.status}
-                            onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
-                          >
-                            <SelectTrigger className="w-[160px] h-8 border-0 bg-transparent p-0 hover:bg-gray-50 rounded-lg [&>svg]:hidden">
-                              <Badge
-                                className={`${getStatusColor(
-                                  job.status
-                                )} border rounded-lg px-3 py-1 cursor-pointer w-full justify-center`}
-                              >
-                                {job.status}
-                              </Badge>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Pending">Pending</SelectItem>
-                              <SelectItem value="In Progress">In Progress</SelectItem>
-                              <SelectItem value="Completed">Completed</SelectItem>
-                              <SelectItem value="Waiting for Spares">Waiting for Spares</SelectItem>
-                              <SelectItem value="Waiting for Customer Reply">Waiting for Customer Reply</SelectItem>
-                              <SelectItem value="Not Repairable">Not Repairable</SelectItem>
-                              <SelectItem value="Repair Declined">Repair Declined</SelectItem>
-                            </SelectContent>
-                          </Select>
+                              return (
+                                <Select
+                                  value={job.status}
+                                  onValueChange={(value) => handleStatusUpdate(Number(job.id), value)}
+                                  disabled={isDisabled}
+                                >
+                                  <SelectTrigger className={`w-[160px] h-8 border-0 bg-transparent p-0 rounded-lg [&>svg]:hidden ${isDisabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-gray-50'}`}>
+                                    <Badge
+                                      className={`${getStatusColor(
+                                        job.status
+                                      )} border rounded-lg px-3 py-1 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} w-full justify-center`}
+                                    >
+                                      {job.status}
+                                    </Badge>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableStatuses.map((status) => (
+                                      <SelectItem key={status} value={status}>
+                                        {status}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                         
@@ -1551,25 +1609,6 @@ export function TechnicianJobSheet() {
                   placeholder="Enter bill number"
                   className="rounded-xl border-gray-200 mt-1"
                 />
-              </div>
-
-              <div className="col-span-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={orderFormData.status}
-                  onValueChange={(value: any) => setOrderFormData({ ...orderFormData, status: value })}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Requested">Requested</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Purchase Initiated">Purchase Initiated</SelectItem>
-                    <SelectItem value="Purchased">Purchased</SelectItem>
-                    <SelectItem value="Delivered to Technician">Delivered to Technician</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 

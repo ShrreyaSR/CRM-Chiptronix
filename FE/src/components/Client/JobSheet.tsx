@@ -63,6 +63,7 @@ export function ClientJobSheet() {
 
   const [jobSheets, setJobSheets] = useState<JobSheetDto[]>([]);
   const [allJobSheets, setAllJobSheets] = useState<JobSheetDto[]>([]);
+  const [statsJobSheets, setStatsJobSheets] = useState<JobSheetDto[]>([]);
   const [selectedJobSheet, setSelectedJobSheet] = useState<JobSheetDto>();
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
@@ -103,7 +104,7 @@ export function ClientJobSheet() {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchStatsData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
@@ -121,20 +122,11 @@ export function ClientJobSheet() {
     clientId,
   ]);
 
-  const fetchData = async () => {
+  const fetchStatsData = async () => {
     if (!clientId) return;
-    const jobSheetParams = {
-      ...params,
-      client: clientId,
-    };
-
-    const [jobRes, allRes] = await Promise.all([
-      crmApi.jobSheet.getAll(jobSheetParams),
-      crmApi.jobSheet.getAll({ client: clientId, limit: -1 }),
-    ]);
-    setJobSheets(jobRes.data.items || []);
-    setJobSheetsRes(jobRes.data);
-    setAllJobSheets(allRes.data.items || []);
+    // Fetch unfiltered data for stats (only client filter)
+    const res = await crmApi.jobSheet.getAll({ client: clientId, limit: -1 });
+    setStatsJobSheets(res.data.items || []);
   };
 
   async function fetchAllJobSheets() {
@@ -212,22 +204,22 @@ export function ClientJobSheet() {
   const resetPagination = () => setCurrentPage(1);
 
   const stats = {
-    total: allJobSheets.length,
-    pending: allJobSheets.filter((j) => j.status === "Pending").length,
-    inProgress: allJobSheets.filter((j) => j.status === "In Progress").length,
-    completed: allJobSheets.filter((j) => j.status === "Completed").length,
-    delivered: allJobSheets.filter(
+    total: statsJobSheets.length,
+    pending: statsJobSheets.filter((j) => j.status === "Pending").length,
+    inProgress: statsJobSheets.filter((j) => j.status === "In Progress").length,
+    completed: statsJobSheets.filter((j) => j.status === "Completed").length,
+    delivered: statsJobSheets.filter(
       (j) =>
         j.status === "Delivered" ||
         j.status === "Not Repairable - Delivered" ||
         j.status === "Repair Declined - Delivered"
     ).length,
-    waiting: allJobSheets.filter(
+    waiting: statsJobSheets.filter(
       (j) =>
         j.status === "Waiting for Spares" ||
         j.status === "Waiting for Customer Reply"
     ).length,
-    paid: allJobSheets.filter((j) => j.status === "Paid").length,
+    paid: statsJobSheets.filter((j) => j.status === "Paid").length,
   };
 
   return (
@@ -612,7 +604,7 @@ export function ClientJobSheet() {
                     </TableHead>
                     <TableHead
                       className="text-gray-700 w-[300px] max-w-[300px] overflow-hidden"
-                      style={{ width: "220px", maxWidth: "260px" }}
+                      style={{ width: "350px", maxWidth: "350px" }}
                     >
                       <div className="flex items-center truncate">
                         Complaints

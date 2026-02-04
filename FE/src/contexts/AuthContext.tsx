@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { crmApi } from "../api";
 import { toast } from "sonner";
 
-export type UserRole = "super-admin" | "admin" | "technician" | "sales" | "dealer";
+export type UserRole = "super-admin" | "admin" | "technician" | "sales" | "client";
 
 export interface AuthUser {
   id: number;
@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const targetPath =
           role === "super-admin"
             ? "/super-admin"
-            : role === "dealer"
+            : role === "client"
             ? "/client"
             : `/${role}`;
         window.location.href = targetPath;

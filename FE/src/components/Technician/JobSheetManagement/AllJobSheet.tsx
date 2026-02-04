@@ -69,6 +69,7 @@ export function TechnicianAllJobSheet() {
   const navigate = useNavigate();
   const [jobSheets, setJobSheets] = useState<JobSheetDto[]>([]);
   const [allJobSheets, setAllJobSheets] = useState<JobSheetDto[]>([]);
+  const [statsJobSheets, setStatsJobSheets] = useState<JobSheetDto[]>([]);
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [technicians, setTechnician] = useState<TechnicianDto[]>([]);
   const [selectedJobSheet, setSelectedJobSheet] = useState<JobSheetDto>();
@@ -81,11 +82,6 @@ export function TechnicianAllJobSheet() {
     limit: 10,
     totalPages: 0,
   });
-
-  useEffect(() => {
-    fetchData();
-    fetchAllJobSheets();
-  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -118,6 +114,27 @@ export function TechnicianAllJobSheet() {
     limit: itemsPerPage,
   };
 
+  useEffect(() => {
+    fetchStatsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchStatsData = async () => {
+    try {
+      // Fetch unfiltered data for stats (no filters at all)
+      const [statsRes, clientRes, technicianRes] = await Promise.all([
+        crmApi.jobSheet.getAll({ limit: -1 }),
+        crmApi.client.getAll({}),
+        crmApi.technician.getAll({}),
+      ]);
+      setStatsJobSheets(statsRes.data.items || []);
+      setClients(clientRes.data.data || []);
+      setTechnician(technicianRes.data.data ?? []);
+    } catch (err) {
+      console.error("Error loading stats data:", err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       const jobSheetParams = {
@@ -132,14 +149,10 @@ export function TechnicianAllJobSheet() {
             : undefined,
       };
 
-      const [jobRes, clientRes, technicianRes] = await Promise.all([
+      const [jobRes] = await Promise.all([
         crmApi.jobSheet.getAll(jobSheetParams),
-        crmApi.client.getAll({}),
-        crmApi.technician.getAll({}),
       ]);
       setJobSheets(jobRes.data.items || []);
-      setClients(clientRes.data.data || []);
-      setTechnician(technicianRes.data.data ?? []);
       setJobSheetsRes(jobRes.data);
     } catch (err) {
       console.error("Error loading jobs:", err);
@@ -245,22 +258,22 @@ export function TechnicianAllJobSheet() {
   const resetPagination = () => setCurrentPage(1);
 
   const stats = {
-    total: allJobSheets.length,
-    pending: allJobSheets.filter((j) => j.status === "Pending").length,
-    inProgress: allJobSheets.filter((j) => j.status === "In Progress").length,
-    completed: allJobSheets.filter((j) => j.status === "Completed").length,
-    delivered: allJobSheets.filter((j) =>
+    total: statsJobSheets.length,
+    pending: statsJobSheets.filter((j) => j.status === "Pending").length,
+    inProgress: statsJobSheets.filter((j) => j.status === "In Progress").length,
+    completed: statsJobSheets.filter((j) => j.status === "Completed").length,
+    delivered: statsJobSheets.filter((j) =>
       j.status === "Delivered" ||
       j.status === "Not Repairable - Delivered" ||
       j.status === "Repair Declined - Delivered"
     ).length,
-    waiting: allJobSheets.filter((j) =>
+    waiting: statsJobSheets.filter((j) =>
       j.status === "Waiting for Spares" ||
       j.status === "Waiting for Customer Reply"
     ).length,
-    paid: allJobSheets.filter((j) => j.status === "Paid").length,
-    notRepairable: allJobSheets.filter((j) => j.status === "Not Repairable").length,
-    repairDeclined: allJobSheets.filter((j) => j.status === "Repair Declined").length,
+    paid: statsJobSheets.filter((j) => j.status === "Paid").length,
+    notRepairable: statsJobSheets.filter((j) => j.status === "Not Repairable").length,
+    repairDeclined: statsJobSheets.filter((j) => j.status === "Repair Declined").length,
   };
 
   const handleAssignedToUpdate = async (jobId: number, technicianId: number | null) => {
@@ -271,6 +284,7 @@ export function TechnicianAllJobSheet() {
       toast.success("Assigned technician updated successfully");
       fetchJobSheets();
       fetchAllJobSheets();
+      fetchStatsData();
     } catch (error) {
       toast.error("Failed to update assigned technician");
       console.error(error);

@@ -360,15 +360,11 @@ export function SuperAdminJobSheet() {
       // Update tray status if status changed to any delivered type
       if (currentJob && currentJob.tray?.id) {
         const trayId = Number(currentJob.tray.id);
-        const wasCompletedOrDelivered = currentJob.status === "Completed" || (currentJob.status && isDeliveredStatus(currentJob.status));
-        const isNowCompletedOrDelivered = newStatus === "Completed" || isDeliveredStatus(newStatus);
+        const isNowCompletedOrDelivered = isDeliveredStatus(newStatus);
 
         if (isNowCompletedOrDelivered) {
           // If status changed to Completed or any Delivered status, free the tray
           await crmApi.tray.update(trayId, { status: "Free" });
-        } else if (wasCompletedOrDelivered && !isNowCompletedOrDelivered) {
-          // If changing from delivered/completed to something else, set tray to occupied
-          await crmApi.tray.update(trayId, { status: "Occupied" });
         }
       }
 
