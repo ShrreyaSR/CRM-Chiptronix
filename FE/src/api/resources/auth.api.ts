@@ -9,14 +9,14 @@ import { ApiResponse } from "../types";
 export interface LoginRequest {
   emailOrPhone: string;
   password: string;
-  role: "super-admin" | "admin" | "technician" | "sales" | "dealer";
+  role: "super-admin" | "admin" | "technician" | "sales" | "client";
 }
 
 export interface LoginResponse {
   token: string;
   user: {
     id: number;
-    role: "super-admin" | "admin" | "technician" | "sales" | "dealer";
+    role: "super-admin" | "admin" | "technician" | "sales" | "client";
     name?: string;
     email?: string;
     phone?: string;

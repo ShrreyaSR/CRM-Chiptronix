@@ -9,7 +9,7 @@ import { AppError } from "../middleware/errorHandler";
 import { logger } from "../utils/logger";
 import { env } from "../config/env";
 
-export type UserRole = "super-admin" | "admin" | "technician" | "sales" | "dealer";
+export type UserRole = "super-admin" | "admin" | "technician" | "sales" | "client";
 
 export interface LoginCredentials {
   emailOrPhone: string;
@@ -45,7 +45,7 @@ export class AuthService {
         return await this.loginTechnician(emailOrPhone, password);
       } else if (role === "sales") {
         return await this.loginSalesPerson(emailOrPhone, password);
-      } else if (role === "dealer") {
+      } else if (role === "client") {
         return await this.loginDealer(emailOrPhone, password);
       } else {
         throw new AppError("Invalid role", 400);
@@ -237,7 +237,7 @@ export class AuthService {
       throw new AppError("Invalid credentials", 401);
     }
 
-    const token = this.generateToken(client.id!, "dealer", {
+    const token = this.generateToken(client.id!, "client", {
       name: client.name,
       email: client.email,
       phone: client.phone,
@@ -247,7 +247,7 @@ export class AuthService {
       token,
       user: {
         id: client.id!,
-        role: "dealer",
+        role: "client",
         name: client.name,
         email: client.email,
         phone: client.phone,

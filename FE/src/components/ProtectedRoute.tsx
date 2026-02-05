@@ -15,7 +15,7 @@ const getDashboardPath = (role: UserRole): string => {
     "admin": "/admin",
     "technician": "/technician",
     "sales": "/sales",
-    "dealer": "/client", // Dealer role maps to /client route
+    "client": "/client", // Client role maps to /client route
   };
   return roleToPath[role] || "/login";
 };

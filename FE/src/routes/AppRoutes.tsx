@@ -121,11 +121,11 @@ export default function AppRoutes() {
       
       </Route>
 
-      {/* Client/Dealer Dashboard */}
+      {/* Client Dashboard */}
       <Route
         path="/client"
         element={
-          <ProtectedRoute requiredRole="dealer">
+          <ProtectedRoute requiredRole="client">
             <ClientLayout />
           </ProtectedRoute>
         }

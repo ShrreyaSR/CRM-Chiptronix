@@ -84,7 +84,7 @@ export function LoginPage() {
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="dealer">Dealer</SelectItem>
+                      <SelectItem value="client">Client</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

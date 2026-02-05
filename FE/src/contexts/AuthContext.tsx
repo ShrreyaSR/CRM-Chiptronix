@@ -69,7 +69,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (storedToken && storedUser) {
       try {
-        const userData = JSON.parse(storedUser);
+        const parsedUser = JSON.parse(storedUser);
+
+        // Backwards compatibility: normalize old 'dealer' role to 'client'
+        const normalizedRole =
+          parsedUser.role === "dealer" ? "client" : parsedUser.role;
+
+        const userData: AuthUser = {
+          ...parsedUser,
+          role: normalizedRole,
+        };
+
+        // If we normalized from dealer -> client, persist the updated user
+        if (parsedUser.role === "dealer") {
+          localStorage.setItem("auth_user", JSON.stringify(userData));
+        }
+
         setToken(storedToken);
         setUser(userData);
 
@@ -115,8 +130,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const targetPath =
           role === "super-admin"
             ? "/super-admin"
-            : role === "client"
-            ? "/client"
             : `/${role}`;
         window.location.href = targetPath;
       } else {
