@@ -87,7 +87,7 @@ export function ClientJobSheet() {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   const params = {
     search: searchTerm || "",

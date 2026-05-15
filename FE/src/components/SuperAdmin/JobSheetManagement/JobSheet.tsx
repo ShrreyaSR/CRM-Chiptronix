@@ -179,7 +179,7 @@ export function SuperAdminJobSheet() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   // Build params with proper date formatting (using local date, not UTC)
   const params = {

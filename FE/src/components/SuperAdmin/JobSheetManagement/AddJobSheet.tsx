@@ -15,6 +15,8 @@ import { ClientDto, TechnicianDto, BrandDto, ComplaintDto, TrayDto, JobSheetDto,
 import { toast } from "sonner";
 import { createRoot } from "react-dom/client";
 import { PrintBill } from "../../PrintBill";
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
 
 interface AddJobSheetProps {
   onBack: () => void;
@@ -88,6 +90,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
   const [isTrayDialogOpen, setIsTrayDialogOpen] = useState(false);
   const [isTechnicianDialogOpen, setIsTechnicianDialogOpen] = useState(false);
+  const [isNewBrandMode, setIsNewBrandMode] = useState(false);
+  const [brandDialogSearch, setBrandDialogSearch] = useState("");
 
   // Form data for dialogs
   const [clientFormData, setClientFormData] = useState({
@@ -267,8 +271,21 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     }
   };
 
-  // Get unique brands (no duplicates)
-  const uniqueBrands = Array.from(new Set(brands.map(b => b.brand))).sort();
+  // Get unique brands (no duplicates, case-insensitive)
+  const uniqueBrands = Array.from(
+    new Set(
+      brands
+        .map((b) => b.brand?.trim())
+        .filter(Boolean)
+        .map((b) => b!.toUpperCase())
+    )
+  )
+    .sort()
+    .map((upper) => {
+      // Find the first occurrence in original case for display
+      const original = brands.find((b) => b.brand?.trim().toUpperCase() === upper);
+      return original?.brand?.trim() || upper;
+    });
 
   // Get free trays only (for add mode), or all trays (for edit mode)
   const availableTraysForSelection = isEditMode
@@ -330,7 +347,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
   // Update available models when brand name changes
   useEffect(() => {
     if (selectedBrandName && brands.length > 0) {
-      const models = brands.filter(b => b.brand === selectedBrandName);
+      const models = brands.filter(b => b.brand?.trim().toUpperCase() === selectedBrandName.trim().toUpperCase());
       setAvailableModels(models);
 
       // Only generate serial number in add mode (not edit mode) and if serial number is empty
@@ -548,15 +565,6 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
 
           const printContainer = document.createElement("div");
           printContainer.id = "temp-print-created-bill";
-          printContainer.style.position = "fixed";
-          printContainer.style.left = "-9999px";
-          printContainer.style.top = "-9999px";
-          printContainer.style.width = "100%";
-          printContainer.style.height = "100%";
-          printContainer.style.zIndex = "99999";
-          printContainer.style.backgroundColor = "white";
-          printContainer.style.overflow = "auto";
-          printContainer.style.visibility = "hidden";
           document.body.appendChild(printContainer);
 
           let styleElement = document.getElementById(
@@ -611,20 +619,91 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           const root = createRoot(printContainer);
           root.render(<PrintBill jobData={jobDataForPrint} />);
 
-          setTimeout(() => {
-            const printContent =
-              printContainer.querySelector(".print-content");
+          setTimeout(async () => {
+            const printContent = printContainer.querySelector(".print-content");
             if (printContent) {
+              console.log("Print content found, starting print flow");
+              // 1. Show native print dialog
               window.print();
-            }
-            setTimeout(() => {
-              root.unmount();
-              if (printContainer.parentNode) {
-                printContainer.parentNode.removeChild(printContainer);
+              
+              console.log("Print dialog closed, preparing PDF generation");
+              // 2. Automatically trigger "Save as PDF" dialog
+              const element = printContainer.querySelector(".print-content") as HTMLElement;
+              
+              if (!element) {
+                console.error("PDF Element not found!");
+                onBack();
+                return;
               }
+
+              try {
+                console.log("Preparing clone for PDF generation...");
+                const clone = element.cloneNode(true) as HTMLElement;
+                
+                // Apply hex overrides to the clone only
+                clone.style.cssText = `
+                  position: fixed !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 210mm !important;
+                  background: white !important;
+                  z-index: -9999 !important;
+                  opacity: 1 !important;
+                  color: black !important;
+                  --color-blue-600: #2563eb;
+                  --color-gray-600: #4b5563;
+                  --color-red-600: #dc2626;
+                `;
+                
+                // Ensure the clone is in the DOM for capture
+                document.body.appendChild(clone);
+
+                console.log("Generating image from clone...");
+                const dataUrl = await toPng(clone, { 
+                  quality: 1,
+                  pixelRatio: 2,
+                  backgroundColor: '#ffffff'
+                });
+
+                document.body.removeChild(clone);
+
+                console.log("Image generated, creating PDF...");
+                const pdf = new jsPDF({
+                  orientation: 'portrait',
+                  unit: 'mm',
+                  format: 'a4'
+                });
+
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(`JobSheet_${createdJob.id}.pdf`);
+                
+                console.log("PDF save triggered");
+                
+                setTimeout(() => {
+                  root.unmount();
+                  if (printContainer.parentNode) {
+                    printContainer.parentNode.removeChild(printContainer);
+                  }
+                  onBack();
+                }, 1000);
+              } catch (err) {
+                console.error("PDF Generation Error (Clone Stack):", err);
+                root.unmount();
+                if (printContainer.parentNode) {
+                  printContainer.parentNode.removeChild(printContainer);
+                }
+                onBack();
+              }
+            } else {
+              console.error("Print content NOT found in container");
               onBack();
-            }, 800);
-          }, 800);
+            }
+          }, 2500);
+
         } else {
           await fetchAllData();
           onBack();
@@ -674,14 +753,31 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
     }
 
     try {
-      await crmApi.model.create(brandFormData);
-      await fetchAllData();
+      setLoading(true);
+      const response = await crmApi.model.create(brandFormData);
+      const newModel = response.data.data;
+      
+      const fetched = await fetchAllData();
+      
+      if (newModel && fetched) {
+        // Auto-select the brand and model we just created
+        setSelectedBrandName(newModel.brand);
+        setSelectedModelId(newModel.id.toString());
+        setFormData(prev => ({ ...prev, brandId: newModel.id.toString() }));
+        
+        // Update available models immediately for the brand
+        const models = fetched.brandsData.filter((b: BrandDto) => b.brand === newModel.brand);
+        setAvailableModels(models);
+      }
+      
       setIsBrandDialogOpen(false);
       setBrandFormData({ brand: "", model: "", description: "" });
       toast.success("Brand/Model added successfully");
     } catch (error) {
       toast.error("Failed to add brand/model");
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -899,13 +995,13 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                   <div className="space-y-2">
                     <Label htmlFor="brand" className="text-gray-700">Brand *</Label>
                     <div className="flex gap-2">
-                    <Select
-                      value={selectedBrandName}
-                      onValueChange={(key) => {
-                        setSelectedBrandName(key);
-                        setSelectedModelId(""); // reset model
-                      }}
-                    >
+                      <Select
+                        value={selectedBrandName}
+                        onValueChange={(key) => {
+                          setSelectedBrandName(key);
+                          setSelectedModelId(""); // reset model
+                        }}
+                      >
                         <SelectTrigger id="brand" className="rounded-xl border-gray-200 flex-1">
                           <SelectValue placeholder="Select brand" />
                         </SelectTrigger>
@@ -1072,9 +1168,8 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
                                 <button
                                   key={complaint.id}
                                   type="button"
-                                  className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${
-                                    selected ? "bg-blue-50" : ""
-                                  }`}
+                                  className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${selected ? "bg-blue-50" : ""
+                                    }`}
                                   onClick={() => {
                                     setFormData(prev => ({
                                       ...prev,
@@ -1639,8 +1734,13 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
         </DialogContent>
       </Dialog>
 
-      {/* Add Brand/Model Dialog */}
-      <Dialog open={isBrandDialogOpen} onOpenChange={setIsBrandDialogOpen}>
+      <Dialog open={isBrandDialogOpen} onOpenChange={(open) => {
+        setIsBrandDialogOpen(open);
+        if (!open) {
+          setIsNewBrandMode(false);
+          setBrandDialogSearch("");
+        }
+      }}>
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle>Add New Brand/Model</DialogTitle>
@@ -1648,27 +1748,96 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label>Brand <span className="text-red-500">*</span></Label>
-              <Input
-                value={brandFormData.brand}
-                onChange={(e) => setBrandFormData({ ...brandFormData, brand: e.target.value })}
-                className="rounded-lg"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <Label>Brand <span className="text-red-500">*</span></Label>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    setIsNewBrandMode(!isNewBrandMode);
+                    setBrandFormData(prev => ({ ...prev, brand: "" }));
+                  }}
+                  className="h-auto p-0 text-xs text-blue-600"
+                >
+                  {isNewBrandMode ? "Select Existing Brand" : "Create New Brand"}
+                </Button>
+              </div>
+              {isNewBrandMode ? (
+                <Input
+                  placeholder="Enter new brand name"
+                  value={brandFormData.brand}
+                  onChange={(e) => setBrandFormData({ ...brandFormData, brand: e.target.value })}
+                  className="rounded-lg"
+                  required
+                />
+              ) : (
+                <Select
+                  value={brandFormData.brand}
+                  onValueChange={(value) => setBrandFormData({ ...brandFormData, brand: value })}
+                >
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue placeholder="Select existing brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search brand..."
+                          value={brandDialogSearch}
+                          onChange={(e) => setBrandDialogSearch(e.target.value)}
+                          className="pl-8 h-8 text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {uniqueBrands
+                        .filter(b => b.toLowerCase().includes(brandDialogSearch.toLowerCase()))
+                        .map((brandName) => (
+                          <SelectItem key={brandName} value={brandName}>
+                            {brandName}
+                          </SelectItem>
+                        ))}
+                    </div>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Model <span className="text-red-500">*</span></Label>
               <Input
+                placeholder="Enter model name"
                 value={brandFormData.model}
                 onChange={(e) => setBrandFormData({ ...brandFormData, model: e.target.value })}
                 className="rounded-lg"
                 required
               />
             </div>
+
+            {/* Show existing models for selected brand */}
+            {!isNewBrandMode && brandFormData.brand && (
+              <div className="md:col-span-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                <p className="text-xs font-medium text-blue-700 mb-2">Existing Models for {brandFormData.brand}:</p>
+                <div className="flex flex-wrap gap-2">
+                  {brands
+                    .filter(b => b.brand?.trim().toUpperCase() === brandFormData.brand.trim().toUpperCase())
+                    .map(b => (
+                      <span key={b.id} className="px-2 py-1 bg-white border border-blue-200 rounded-md text-[11px] text-blue-600">
+                        {b.model}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 md:col-span-2">
               <Label>Description</Label>
               <Textarea
-                rows={3}
+                rows={2}
+                placeholder="Optional description..."
                 value={brandFormData.description}
                 onChange={(e) => setBrandFormData({ ...brandFormData, description: e.target.value })}
                 className="rounded-lg resize-none"
@@ -1825,6 +1994,7 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Complaint } from "../entities/Complaint";
 
 export class JobSheetService {
   private repo = JobSheetRepository;
-  
+
   async getAllJobs(query: any) {
     const {
       search,
@@ -41,8 +41,9 @@ export class JobSheetService {
       .leftJoinAndSelect("spares.vendor", "vendor");
 
     if (search) {
-  qb.andWhere(
-    `(client.name ILIKE :search
+      qb.andWhere(
+        `(client.name ILIKE :search 
+      OR CAST(job.id AS TEXT) ILIKE :search
       OR job.serviceType ILIKE :search
       OR brand.brand ILIKE :search
       OR brand.model ILIKE :search
@@ -52,9 +53,9 @@ export class JobSheetService {
       OR assignedTo.name ILIKE :search
       OR receivedBy.name ILIKE :search
     )`,
-    { search: `%${search}%` }
-  );
-}
+        { search: `%${search}%` }
+      );
+    }
 
 
     if (status) qb.andWhere("job.status = :status", { status });
@@ -135,7 +136,7 @@ export class JobSheetService {
       .leftJoinAndSelect("spares.vendor", "vendor")
       .where("job.id = :id", { id })
       .getOne();
-    
+
     if (!job) {
       throw new AppError(`Job sheet with id ${id} not found`, 404);
     }
@@ -162,7 +163,7 @@ export class JobSheetService {
 
   async updateJob(id: number, data: any) {
     const existingJob = await this.getJobById(id); // Throws if not found
-    
+
     // Handle spares and complaints separately if provided
     const { spares, complaints, ...jobSheetData } = data;
 
@@ -180,13 +181,13 @@ export class JobSheetService {
     if (!isCompletedLike(previousStatus) && isCompletedLike(newStatus)) {
       (jobSheetData as any).completedOn = new Date();
     }
-    
+
     const sparesRepository = AppDataSource.getRepository(Spares);
     let sparesEntity: Spares | null = null;
 
     const complaintRepository = AppDataSource.getRepository(Complaint);
     let complaintEntities: Complaint[] | undefined;
-    
+
     // Process spares if provided
     if (spares !== undefined) {
       if (spares === null) {
@@ -196,19 +197,19 @@ export class JobSheetService {
         // Fetch relation entities
         const salesPersonRepository = AppDataSource.getRepository(SalesPerson);
         const vendorRepository = AppDataSource.getRepository(Vendor);
-        
-        const salesPerson = spares.salesPerson 
+
+        const salesPerson = spares.salesPerson
           ? await salesPersonRepository.findOneBy({ id: typeof spares.salesPerson === 'number' ? spares.salesPerson : spares.salesPerson.id })
           : null;
-        
+
         if (!salesPerson && spares.salesPerson) {
           throw new AppError(`SalesPerson with id ${spares.salesPerson} not found`, 404);
         }
-        
-        const vendor = spares.vendor 
+
+        const vendor = spares.vendor
           ? await vendorRepository.findOneBy({ id: typeof spares.vendor === 'number' ? spares.vendor : spares.vendor.id })
           : null;
-        
+
         // Create or update spares
         if (existingJob.spares?.id) {
           // Update existing spares
@@ -216,7 +217,7 @@ export class JobSheetService {
           if (!existingSpares) {
             throw new AppError(`Spares with id ${existingJob.spares.id} not found`, 404);
           }
-          
+
           existingSpares.product = spares.product;
           existingSpares.description = spares.description;
           existingSpares.amount = spares.amount || null;
@@ -224,7 +225,7 @@ export class JobSheetService {
           existingSpares.status = spares.status || "Requested";
           existingSpares.salesPerson = salesPerson as any;
           existingSpares.vendor = vendor as any;
-          
+
           sparesEntity = await sparesRepository.save(existingSpares);
         } else {
           // Create new spares
@@ -260,18 +261,18 @@ export class JobSheetService {
     if (complaints !== undefined) {
       jobSheetData.complaints = complaintEntities;
     }
-    
+
     // Update job sheet - use save() to handle relations properly
     const jobSheet = await this.repo.findOneBy({ id });
     if (!jobSheet) {
       throw new AppError(`Job sheet with id ${id} not found`, 404);
     }
-    
+
     // Merge the update data
     Object.assign(jobSheet, jobSheetData);
-    
+
     const updated = await this.repo.save(jobSheet);
-    
+
     // Fetch with all relations
     const updatedWithRelations = await this.getJobById(id);
     logger.info("Job sheet updated", { jobId: id });

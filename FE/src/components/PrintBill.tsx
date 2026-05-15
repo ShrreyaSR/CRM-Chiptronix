@@ -197,7 +197,7 @@ export function PrintBill({ jobData }: PrintBillProps) {
               </div>
 
               <div className="border border-blue-200 rounded p-2 mb-2 bg-blue-50">
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-4 gap-1 text-xs">
                   <div>
                     <span className="text-gray-600 text-[11px]">Job No</span>
                     <div className="font-semibold text-blue-700">{jobData.jobNo}</div>
@@ -209,6 +209,10 @@ export function PrintBill({ jobData }: PrintBillProps) {
                   <div>
                     <span className="text-gray-600 text-[11px]">Customer</span>
                     <div className="font-semibold text-gray-800">{jobData.customerName}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 text-[11px]">Customer Phone</span>
+                    <div className="font-semibold text-gray-800">{jobData.customerPhone}</div>
                   </div>
                 </div>
               </div>

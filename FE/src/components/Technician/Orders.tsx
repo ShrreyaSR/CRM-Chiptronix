@@ -164,7 +164,7 @@ export function TechnicianOrders() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const params = {
     search: searchTerm || "",
     client: filterClient !== "all" ? filterClient : "",

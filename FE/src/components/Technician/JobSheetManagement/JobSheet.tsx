@@ -194,7 +194,7 @@ export function TechnicianJobSheet() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
       const params = {
       search: searchTerm || "",
       status: filterStatus !== "all" ? filterStatus : "",
