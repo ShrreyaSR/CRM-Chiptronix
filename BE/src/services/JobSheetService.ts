@@ -44,14 +44,7 @@ export class JobSheetService {
       qb.andWhere(
         `(client.name ILIKE :search 
       OR CAST(job.id AS TEXT) ILIKE :search
-      OR job.serviceType ILIKE :search
-      OR brand.brand ILIKE :search
-      OR brand.model ILIKE :search
-      OR job.serialNumber ILIKE :search
-      OR job.problemsIdentified ILIKE :search
-      OR job.receivedFrom ILIKE :search
-      OR assignedTo.name ILIKE :search
-      OR receivedBy.name ILIKE :search
+      OR client.phone ILIKE :search
     )`,
         { search: `%${search}%` }
       );

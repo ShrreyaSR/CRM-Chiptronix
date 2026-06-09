@@ -534,26 +534,30 @@ export function SuperAdminAddJobSheet({ onBack, jobSheetId }: AddJobSheetProps) 
 
         // Auto-open print bill for newly created job
         if (createdJob) {
+          const selectedClient = clients.find(c => c.id.toString() === formData.clientId);
+          const selectedBrand = brands.find(b => b.id.toString() === formData.brandId);
+          const selectedComplaintsList = complaints.filter(c => formData.complaintIds.includes(c.id.toString()));
+
           const jobDataForPrint = {
-            id: createdJob.id,
-            jobNo: createdJob.id,
-            serialNumber: createdJob.serialNumber,
+            id: createdJob.id?.toString() || "",
+            jobNo: createdJob.id?.toString() || "",
+            serialNumber: createdJob.serialNumber || formData.serialNumber,
             date: createdJob.createdOn
               ? createdJob.createdOn.split("T")[0]
               : new Date().toISOString().split("T")[0],
-            customerName: createdJob.client.name,
-            customerAddress: createdJob.client.address,
-            customerPhone: createdJob.client.phone,
-            customerEmail: createdJob.client.email,
-            model: createdJob.brand.model,
-            brand: createdJob.brand.brand,
-            color: createdJob.color,
-            complaints: Array.isArray(createdJob.complaints)
-              ? createdJob.complaints.map(c => c.description).join(", ")
-              : "",
-            problemIdentified: createdJob.problemsIdentified,
-            status: createdJob.status,
-            advancePaid: createdJob.amountPaid,
+            customerName: createdJob.client?.name || selectedClient?.name || "",
+            customerAddress: createdJob.client?.address || selectedClient?.address || "",
+            customerPhone: createdJob.client?.phone || selectedClient?.phone || "",
+            customerEmail: createdJob.client?.email || selectedClient?.email || "",
+            model: createdJob.brand?.model || selectedBrand?.model || "",
+            brand: createdJob.brand?.brand || selectedBrand?.brand || "",
+            color: createdJob.color || formData.color,
+            complaints: Array.isArray(createdJob.complaints) && createdJob.complaints.length > 0 && createdJob.complaints[0].description
+              ? createdJob.complaints.map((c: any) => c.description).join(", ")
+              : selectedComplaintsList.map(c => c.description).join(", "),
+            problemIdentified: createdJob.problemsIdentified || formData.problemsIdentified || "",
+            status: createdJob.status || formData.status || "Pending",
+            advancePaid: createdJob.amountPaid || formData.amountPaid ? parseFloat(createdJob.amountPaid || formData.amountPaid) : undefined,
           };
 
           const existingContainer = document.getElementById(
